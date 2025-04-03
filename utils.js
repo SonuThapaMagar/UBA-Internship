@@ -7,4 +7,9 @@ function celciusToFahrenheit(celcius) {
 }
 
 //Common JS
-module.exports = { randomNumber, celciusToFahrenheit };
+// module.exports = { randomNumber, celciusToFahrenheit };
+
+
+//ES Modules
+export const add=(a,b)=>a+b;
+export const subtract = (a, b) => a - b;
