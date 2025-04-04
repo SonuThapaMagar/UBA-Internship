@@ -75,3 +75,14 @@ setInterval(() => {
   // Prints current time every second
   console.log(now.toLocaleTimeString());
 }, 1000);
+
+//Set Immediate
+console.log("Start");
+setTimeout(() => {
+  console.log("setTimeout with 0ms delay");
+}, 0);
+
+setImmediate(() => {
+  console.log("setImmediate executed");
+});
+console.log("End");
