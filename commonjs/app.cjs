@@ -8,3 +8,5 @@ console.log(`Add: ${add(5, 3)}`);
 console.log(`Subtract: ${subtract(5, 3)}`);
 
 console.log(chalk.blue("Hello world printed in blue"));
+console.log(chalk.green("Hello world printed in green"));
+
