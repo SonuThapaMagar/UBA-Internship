@@ -17,6 +17,6 @@
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
     "fs-extra": "^11.3.0",
-    "inquirer": "^12.5.2"
+    "inquirer": "^8.2.6"
   }
 }

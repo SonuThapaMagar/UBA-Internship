@@ -3,6 +3,7 @@ const { program } = require("commander");
 const userCreate = require("../src/commands/userCreate");
 const userList = require("../src/commands/userList");
 const userUpdate = require("../src/commands/userUpdate");
+const userDelete = require("../src/commands/userDelete");
 
 program
   .name("uba-ims")
@@ -33,4 +34,10 @@ program
   .option("--lname <lastname>", "Update last name")
   .action((id, options) => userUpdate(id, options));
 
+//User delete command
+program
+  .command("user:delete <id>")
+  .description("Delete user by ID")
+  .action((id) => userDelete({ id }));
+  
 program.parse(process.argv);
