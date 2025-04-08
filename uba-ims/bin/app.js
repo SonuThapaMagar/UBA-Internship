@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 const { program } = require("commander");
 const userCreate = require("../src/commands/userCreate");
-const userList =require('../src/commands/userList')
+const userList = require("../src/commands/userList");
+const userUpdate = require("../src/commands/userUpdate");
 
 program
   .name("uba-ims")
@@ -23,4 +24,13 @@ program
   .option("--fname <firstname>", "Search by first name")
   .option("--lname <lastname>", "Search by last name")
   .action((options) => userList(options));
+
+//User Update command
+program
+  .command("user:update <id>")
+  .description("Update a user by ID")
+  .option("--fname <firstname>", "Update first name")
+  .option("--lname <lastname>", "Update last name")
+  .action((id, options) => userUpdate(id, options));
+
 program.parse(process.argv);

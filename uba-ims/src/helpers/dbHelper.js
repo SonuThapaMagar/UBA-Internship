@@ -28,7 +28,7 @@ async function getUsers() {
 //Saving users
 async function saveUsers(users) {
   await initDB();
-  return await fs.writeJson(dbPath, users);
+  return await fs.writeJson(dbPath, users,{spaces:2});
 }
 
 //Generating ID
