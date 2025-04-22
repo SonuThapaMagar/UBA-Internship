@@ -1,8 +1,10 @@
-const { getUsers, saveUsers } = require("../helpers/dbHelper");
+import { getUsers, saveUsers } from "../db/dbHelper";
+import { User } from "../interfaces/User";
 
-module.exports = async (id, options) => {
+export async function userUpdate(id: string, options: { fname?: string; lname?: string }): Promise<void> {
+
   try {
-    const users = await getUsers();
+    const users: User[] = await getUsers();
     const userId = users.findIndex((user) => user.id === id);
     if (userId === -1) {
       console.log("User not found with ID:", id);
@@ -17,6 +19,10 @@ module.exports = async (id, options) => {
     await saveUsers(users);
     console.log(`User updated successfully! ID: ${id}`);
   } catch (error) {
-    console.error("Error updating user:", error.message);
+    if (error instanceof Error) {
+      console.error("Error updating user:", error.message);
+    } else {
+      console.error("An unknown error occurred.");
+    }
   }
 };

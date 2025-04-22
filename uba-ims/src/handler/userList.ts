@@ -1,8 +1,9 @@
-const { getUsers } = require("../helpers/dbHelper");
+import { getUsers } from "../db/dbHelper";
+import { User } from '../interfaces/User'
 
-module.exports = async (options) => {
+export async function userList(options: { fname?: string, lname?: string }): Promise<void> {
   try {
-    const users = await getUsers();
+    const users: User[] = await getUsers();
     let filteredUsers = users;
 
     if (options.fname || options.lname) {
@@ -23,10 +24,14 @@ module.exports = async (options) => {
     console.log("Users:");
     filteredUsers.forEach((user) => {
       console.log(
-        `ID: ${user.id}, Name: ${user.fname} ${user.lname}, Created: ${user.createdAt}`
+        `ID: ${user.id}, Name: ${user.fname} ${user.lname}`
       );
     });
-  } catch (error) {
-    console.error("Error reading users:", error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error("Error reading users:", error.message);
+    } else {
+      console.error("An unknown error occurred.");
+    }
   }
 };

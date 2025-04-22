@@ -7,6 +7,7 @@
     "uba-ims": "./bin/app.js"
   },
   "scripts": {
+    "start":"ts-node src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -17,6 +18,15 @@
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
     "fs-extra": "^11.3.0",
-    "inquirer": "^8.2.6"
+    "inquirer": "^8.2.6",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^22.14.1",
+    "@types/yargs": "^17.0.33",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
   }
 }
