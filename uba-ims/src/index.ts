@@ -4,6 +4,7 @@ import { userCreate } from "./handler/userCreate";
 import { userList } from "./handler/userList";
 import { userUpdate } from "./handler/userUpdate";
 import { userDelete } from "./handler/userDelete";
+import { startServer } from "./server";
 
 //Starting yargs cli
 yargs(hideBin(process.argv))
