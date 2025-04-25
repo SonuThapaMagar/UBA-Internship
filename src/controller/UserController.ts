@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { getUsers, saveUsers, generateID } from "../db/dbHelper";
 import { User } from '../interfaces/User';
+import {user} from '../types/user.type';
 
 //Create user
 export class UserController {
@@ -96,8 +97,4 @@ export class UserController {
             res.status(500).json({ error: "Failed to delete user" });
         }
     }
-
-    //Get user by id 
-    // user
-
 }
