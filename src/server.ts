@@ -2,6 +2,7 @@ import express from 'express'
 import userRouter from './routes/userRoutes';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv'
+import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
 
@@ -19,6 +20,9 @@ export function startServer() {
 
     //Mounting user routes
     app.use("/users", userRouter);
+    
+    //Error handler
+    app.use(errorHandler);
 
     //server listening at defined port
     app.listen(PORT, () => {
