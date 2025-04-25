@@ -1,16 +1,16 @@
 import { Request, Response } from 'express';
 import { getUsers, saveUsers, generateID } from "../db/dbHelper";
-import { User } from '../interfaces/User';
+import { User } from '../types/User';
 
 //Create user
 export class UserController {
     async userCreate(req: Request, res: Response): Promise<void> {
-
+        const { fname, lname } = req.body;
         const users = await getUsers();
         const newUser: User = {
             id: generateID(),
-            fname: req.body.fname,
-            lname: req.body.lname,
+            fname,
+            lname,
         };
         users.push(newUser);
         await saveUsers(users);

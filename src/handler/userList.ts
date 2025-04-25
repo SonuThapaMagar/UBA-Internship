@@ -1,7 +1,7 @@
 import { getUsers } from "../db/dbHelper";
-import { User } from '../interfaces/User'
+import { User, UserOptions } from '../types/User'
 
-export async function userList(options: { fname?: string, lname?: string }): Promise<void> {
+export async function userList(options: UserOptions): Promise<void> {
   try {
     const users: User[] = await getUsers();
     let filteredUsers = users;
