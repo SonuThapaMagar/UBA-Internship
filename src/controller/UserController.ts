@@ -1,19 +1,12 @@
 import { Request, Response } from 'express';
 import { getUsers, saveUsers, generateID } from "../db/dbHelper";
+import { createUser } from '../services/userService'
 import { User } from '../types/User';
 
 //Create user
 export class UserController {
-    async userCreate(req: Request, res: Response): Promise<void> {
-        const { fname, lname } = req.body;
-        const users = await getUsers();
-        const newUser: User = {
-            id: generateID(),
-            fname,
-            lname,
-        };
-        users.push(newUser);
-        await saveUsers(users);
+    async createUser(req: Request, res: Response): Promise<void> {
+        const newUser = await createUser(req.body);
         res.status(201).json(newUser);
     }
 
