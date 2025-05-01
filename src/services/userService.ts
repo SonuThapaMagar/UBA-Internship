@@ -1,72 +1,59 @@
-import { getUsers as dbGetUsers, saveUsers, generateID } from "../db/dbHelper";
-import { User, UserCreate, UserOptions } from '../types/User';
+import { User as IUser, UserCreate, UserOptions } from '../types/User';
+import User from "../data/models/User.models";
 
-export async function getUsers(options: UserOptions = {}): Promise<User[]> {
-    const users = await dbGetUsers();
-    if (options.fname || options.lname) {
-        return users.filter((user) => {
-            return (
-                (!options.fname ||
-                    user.fname.toLowerCase().includes(options.fname.toLowerCase())) &&
-                (!options.lname ||
-                    user.lname.toLowerCase().includes(options.lname.toLowerCase()))
-            );
-        });
-    }
-    return users;
-}
+//Service layer for user operations
+export class UserService {
+    async getUsers(options: UserOptions = {}): Promise<IUser[]> {
+        const query: any = {};
+        if (options.fname) query.fname = { $regex: options.fname, $options: 'i' };
+        if (options.lname) query.lname = { $regex: options.lname, $options: 'i' };
 
-export async function getUserById(id: string): Promise<User> {
-    const users = await dbGetUsers();
-    const user = users.find(u => String(u.id) === String(id));
-
-    if (!user) {
-        throw new Error('User not found');
+        const users = await User.find(query).lean();
+        return users.map(user => ({
+            id: user._id.toString(),
+            ...user
+        }));
     }
 
-    return user;
-}
-
-export async function createUser(userData: UserCreate): Promise<User> {
-    const users = await dbGetUsers();
-    const newUser: User = {
-        id: generateID(),
-        fname: userData.fname,
-        lname: userData.lname,
-    };
-
-    users.push(newUser);
-    await saveUsers(users);
-    return newUser;
-}
-
-export async function updateUser(id: string, userData: UserOptions): Promise<User> {
-    const users = await dbGetUsers();
-    const userId = users.findIndex(user => String(user.id) === String(id));
-    if (userId === -1) {
-        throw new Error('User not found');
+    async getUserById(id: string): Promise<IUser> {
+        const user = await User.findById(id).lean();
+        if (!user) throw new Error('User not found');
+        return {
+            id: user._id.toString(),
+            ...user
+        };
     }
 
-    const updatedUser = {
-        ...users[userId],
-        ...userData,
-        id: users[userId].id
-    };
-
-    users[userId] = updatedUser;
-    await saveUsers(users);
-    return updatedUser;
-}
-
-export async function deleteUser(id: string): Promise<User> {
-
-    const users = await dbGetUsers();
-    const userId = users.findIndex(u => u.id.toString() === id.toString());
-    if (userId === -1) {
-        throw new Error(`User with ID ${id} not found`);
+    async createUser(userData: UserCreate): Promise<IUser> {
+        const newUser = new User(userData);
+        const savedUser = await newUser.save();
+        return {
+            id: savedUser._id.toString(),
+            ...savedUser.toObject()
+        };
     }
 
-    const deletedUser = users.splice(userId, 1)[0];
-    await saveUsers(users);
-    return deletedUser;
+    async updateUser(id: string, userData: UserOptions): Promise<IUser> {
+        const updatedUser = await User.findByIdAndUpdate(
+            id,
+            userData,
+            { new: true }
+        ).lean();
+
+        if (!updatedUser) throw new Error('User not found');
+        return {
+            id: updatedUser._id.toString(),
+            ...updatedUser
+        };
+    }
+
+    async deleteUser(id: string): Promise<IUser> {
+        const deletedUser = await User.findByIdAndDelete(id).lean();
+        if (!deletedUser) throw new Error('User not found');
+        return {
+            id: deletedUser._id.toString(),
+            ...deletedUser
+        };
+    }
 }
+export const userService = new UserService();

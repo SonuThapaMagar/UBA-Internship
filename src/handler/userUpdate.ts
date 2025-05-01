@@ -1,9 +1,9 @@
 import { User, UserOptions } from "../types/User";
-import { updateUser } from '../services/userService'
+import { userService } from '../services/userService'
 
 export async function userUpdate(id: string, options: UserOptions): Promise<void> {
   try {
-    const updatedUser = await updateUser(id, options);
+    const updatedUser = await userService.updateUser(id, options);
     console.log(`User updated successfully! ID: ${id}`);
   } catch (error) {
     if (error instanceof Error) {
