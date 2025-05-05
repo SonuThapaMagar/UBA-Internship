@@ -1,81 +1,44 @@
 import { Request, Response } from 'express';
-import { getUsers, saveUsers, generateID } from "../db/dbHelper";
-import { User } from '../types/User';
+import { userService } from '../services/userService'
+import { UserCreate, UserOptions } from '../types/User';
 
-//Create user
+//Controller for handling HTTP requests
 export class UserController {
-    async userCreate(req: Request, res: Response): Promise<void> {
-        const { fname, lname } = req.body;
-        const users = await getUsers();
-        const newUser: User = {
-            id: generateID(),
-            fname,
-            lname,
-        };
-        users.push(newUser);
-        await saveUsers(users);
+    async createUser(req: Request, res: Response): Promise<void> {
+        const newUser = await userService.createUser(req.body as UserCreate);
         res.status(201).json(newUser);
     }
 
     //Get all user
     async userList(req: Request, res: Response): Promise<void> {
 
-        const users = await getUsers();
+        const users = await userService.getUsers(req.query as UserOptions);
         res.json(users);
     }
 
     //get user by id
     async getUserById(req: Request, res: Response): Promise<void> {
 
-        const users = await getUsers();
-        const user = users.find(u => String(u.id) === String(req.params.id));
-
-        if (!user) {
-            throw new Error('User not found');
-        }
-
+        const user = await userService.getUserById(req.params.id);
         res.json(user);
     }
 
     //update user
     async userUpdate(req: Request, res: Response): Promise<void> {
 
-        const users: User[] = await getUsers();
-        const userId = users.findIndex(user => String(user.id) === String(req.params.id));
+        const updatedUser = await userService.updateUser(
+            req.params.id,
+            req.body as UserOptions
+        );
+        res.json(updatedUser);
 
-        if (userId === -1) {
-            throw new Error('User not found');
-        }
-
-        const updatedUser = {
-            ...users[userId],
-            ...req.body,
-            id: users[userId].id
-        };
-
-        users[userId] = updatedUser;
-        await saveUsers(users);
-        res.status(200).json({
-            message: "User updated successfully",
-            user: updatedUser
-        });
     }
 
     //user delete
     async userDelete(req: Request, res: Response): Promise<void> {
 
-        const users: User[] = await getUsers();
-        const userId = users.findIndex(u => u.id.toString() === req.params.id.toString());
+        const deletedUser = await userService.deleteUser(req.params.id);
+        res.json(deletedUser);
 
-        if (userId === -1) {
-            throw new Error(`User with ID ${req.params.id} not found`);
-        }
-
-        const deletedUser = users.splice(userId, 1)[0];
-        await saveUsers(users);
-        res.status(200).json({
-            message: `Successfully deleted user: ${deletedUser.fname} ${deletedUser.lname}`,
-            user: deletedUser,
-        });
     }
 }
