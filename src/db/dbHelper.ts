@@ -1,7 +1,7 @@
 import fs from "fs-extra";
 import path from "path";
 //Custom interface
-import { User } from "../interfaces/User";
+import { User } from "../types/User";
 
 //JSON db path
 const dbPath = path.join(__dirname, "../data/users.json");

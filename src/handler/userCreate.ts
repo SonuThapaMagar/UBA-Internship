@@ -1,8 +1,8 @@
 //Importing function from dbHelper
 import { getUsers, saveUsers, generateID } from "../db/dbHelper";
-import { User } from '../interfaces/User'
+import { User, UserCreate } from '../types/User'
 
-export async function userCreate(options: { fname: string; lname: string }): Promise<void> {
+export async function userCreate(options: UserCreate): Promise<void> {
   const users: User[] = await getUsers();
 
   const newUser: User = {

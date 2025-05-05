@@ -1,7 +1,7 @@
 import { getUsers, saveUsers } from "../db/dbHelper";
-import { User } from "../interfaces/User";
+import { User,UserOptions } from "../types/User";
 
-export async function userUpdate(id: string, options: { fname?: string; lname?: string }): Promise<void> {
+export async function userUpdate(id: string, options: UserOptions): Promise<void> {
 
   try {
     const users: User[] = await getUsers();
