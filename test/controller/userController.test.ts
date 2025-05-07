@@ -1,6 +1,7 @@
 import { describe, it, vi, beforeEach, expect } from 'vitest';
 import { UserController } from '../../src/controller/UserController';
 import { userService } from '../../src/services/userService';
+import { userList } from '../../src/handler/userList';
 
 vi.mock('../../src/services/userService', () => {
     return {
@@ -50,5 +51,18 @@ describe('UserController', () => {
         expect(userService.getUsers).toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(200);
         expect(res.json).toHaveBeenCalledWith(mockUsers);
+    })
+
+    it('should get the users by id',async()=>{
+        const mockUser={ id: '1', name: 'John' };
+        (userService.getUserById as any).mockResolvedValue(mockUser);
+
+        req.params = { id: '1' };
+        await controller.getUserById(req,res);
+        
+        expect(userService.getUserById).toHaveBeenCalled();
+        expect(res.status).toBeCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith(mockUser);
+
     })
 });
