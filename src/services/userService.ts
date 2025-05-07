@@ -1,7 +1,6 @@
 import { User as IUser, UserCreate, UserOptions } from '../types/User';
 import User from "../data/models/User.models";
 
-//Service layer for user operations
 export class UserService {
     async getUsers(options: UserOptions = {}): Promise<IUser[]> {
         const query: any = {};

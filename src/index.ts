@@ -1,12 +1,8 @@
 import yargs from "yargs";
 import { hideBin } from 'yargs/helpers';
 import { userService } from "./services/userService";
-// import { startServer } from "./server";
-// import { startGraphQLServer } from './graphql/graphqlServer';
 import { startServers } from "./app";
- 
 
-//CLI Command Definitions
 function setupCLI() {
     return yargs(hideBin(process.argv))
         .scriptName("uba-ims")
@@ -26,11 +22,11 @@ function setupCLI() {
                     describe: "Last name"
                 }),
             async (argv) => {
-                await userService.createUser({
+                const newUser = await userService.createUser({
                     fname: argv.fname as string,
                     lname: argv.lname as string
                 })
-                console.log("User created successfully!");
+                console.log("User created successfully!", newUser);
             }
         )
         .command(
@@ -46,11 +42,11 @@ function setupCLI() {
                     describe: "Last name"
                 }),
             async (argv) => {
-                await userService.getUsers({
+                const users = await userService.getUsers({
                     fname: argv.fname as string | undefined,
                     lname: argv.lname as string | undefined
                 })
-
+                console.table(users);
             }
         )
         .command(
@@ -64,7 +60,8 @@ function setupCLI() {
                 .option("fname", { type: "string", describe: "New First name" })
                 .option("lname", { type: "string", describe: "New Last name" }),
             async (argv) => {
-                await userService.updateUser(argv.id as string, argv)
+                const updatedUser = await userService.updateUser(argv.id as string, argv);
+                console.log("User updated successfully:", updatedUser);
             }
 
         )
@@ -76,7 +73,9 @@ function setupCLI() {
                 type: "string"
             }),
             async (argv) => {
-                await userService.deleteUser(argv.id as string);
+                const deletedUser=await userService.deleteUser(argv.id as string);
+                console.log("User deleted successfully:", deletedUser);
+
             }
 
         )
@@ -88,14 +87,10 @@ function setupCLI() {
 
 async function main() {
     if (process.argv.length > 2) {
-        //CLI mode
         setupCLI();
     } else {
-        // Server Mode
         try {
             await startServers();
-            // await startServer(); // REST API
-            // await startGraphQLServer(); // GraphQL
             console.log('Servers started successfully');
         } catch (error) {
             console.error('Failed to start servers:', error);

@@ -1,7 +1,4 @@
-// Importing functions from dbHelper
 import { userService } from "../services/userService";
-import { User } from '../types/User';
-import inquirer from "inquirer";
 
 type UserDeleteInput = { id: string };
 

@@ -6,7 +6,6 @@ import { asyncHandler } from '../middleware/asyncHandler';
 const router: express.Router = express.Router();
 const controller = new UserController();
 
-//Routes
 router.post('/', userValidation, asyncHandler(controller.createUser));
 router.get('/', asyncHandler(controller.userList));
 router.get('/:id', validateUserId, asyncHandler(controller.getUserById));

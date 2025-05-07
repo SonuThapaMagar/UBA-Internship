@@ -12,20 +12,14 @@ dotenv.config();
 
 export async function startServers() {
     try {
-        // Connecting to MongoDB 
         await connectDB();
-        console.log('MongoDB connected successfully');
-
-        //Creating Express app for REST API
         const app = express();
         const REST_PORT = process.env.REST_PORT || 3000;
         const GRAPHQL_PORT = process.env.GRAPHQL_PORT || 4000;
 
-        //Configuring Express middleware
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
 
-        //REST API Routes
         app.get('/', (req, res) => {
             res.send(`
                 <h1>API is running</h1>
@@ -39,22 +33,19 @@ export async function startServers() {
         app.use("/users", userRouter);
         app.use(errorHandler);
 
-        // Starting REST server
-        app.listen(REST_PORT, () => {
+        const restServer = app.listen(REST_PORT, () => {
             console.log(`REST Server running at http://localhost:${REST_PORT}`);
         });
 
-        //Creating Apollo Server for GraphQL
         const apolloServer = new ApolloServer({
             typeDefs,
             resolvers,
         });
-
-        //Starting standalone GraphQL server (on different port)
         const { url } = await startStandaloneServer(apolloServer, {
             listen: { port: Number(GRAPHQL_PORT) },
         });
         console.log(`GraphQL Server ready at ${url}`);
+        return { restServer, apolloServer };
 
     } catch (error) {
         console.error('Failed to start servers:', error);
