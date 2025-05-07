@@ -41,4 +41,14 @@ describe('UserController', () => {
         expect(res.status).toHaveBeenCalledWith(201);
         expect(res.json).toHaveBeenCalledWith(mockUser);
     });
+
+    it('should get all the users', async () => {
+        const mockUsers = [{ id: '1', name: 'John' }, { id: '2', name: 'Jane' }];
+        (userService.getUsers as any).mockResolvedValue(mockUsers);
+
+        await controller.userList(req, res);
+        expect(userService.getUsers).toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith(mockUsers);
+    })
 });
