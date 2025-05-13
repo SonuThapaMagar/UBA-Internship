@@ -8,7 +8,8 @@ export const userResolvers = {
         },
         user: async (_: any, { id }: { id: string }): Promise<User | null> => {
             const users = await userService.getUsers();
-            return users.find(u => u.id === id) || null;
+            // return users.find(u => u.id === id) || null;
+            return await userService.getUserById(id);
         },
     },
 

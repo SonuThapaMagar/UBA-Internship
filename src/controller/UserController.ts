@@ -11,13 +11,13 @@ export class UserController {
     async userList(req: Request, res: Response): Promise<void> {
 
         const users = await userService.getUsers(req.query as UserOptions);
-        res.json(users);
+        res.status(200).json(users);
     }
 
     async getUserById(req: Request, res: Response): Promise<void> {
 
         const user = await userService.getUserById(req.params.id);
-        res.json(user);
+        res.status(200).json(user);
     }
 
     async userUpdate(req: Request, res: Response): Promise<void> {
@@ -26,14 +26,15 @@ export class UserController {
             req.params.id,
             req.body as UserOptions
         );
-        res.json(updatedUser);
+        res.status(200).json(updatedUser);
 
     }
 
     async userDelete(req: Request, res: Response): Promise<void> {
 
         const deletedUser = await userService.deleteUser(req.params.id);
-        res.json(deletedUser);
+        // res.status(204).json(deletedUser);
+        res.status(204).send();
 
     }
 }

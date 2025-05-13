@@ -1,19 +1,16 @@
 import { describe, it, vi, beforeEach, expect } from 'vitest';
-import { UserController } from '../../src/controller/UserController';
-import { userService } from '../../src/services/userService';
-import { send } from 'process';
+import { UserController } from '../../../src/controller/UserController';
+import { userService } from '../../../src/services/userService';
 
-vi.mock('../../src/services/userService', () => {
-    return {
-        userService: {
-            createUser: vi.fn(),
-            getUsers: vi.fn(),
-            getUserById: vi.fn(),
-            updateUser: vi.fn(),
-            deleteUser: vi.fn()
-        }
-    }
-});
+vi.mock('../../../src/services/userService', () => ({
+  userService: {
+    createUser: vi.fn(),
+    getUsers: vi.fn(),
+    getUserById: vi.fn(),
+    updateUser: vi.fn(),
+    deleteUser: vi.fn(),
+  }
+}));
 
 describe('UserController', () => {
     let controller: UserController;
