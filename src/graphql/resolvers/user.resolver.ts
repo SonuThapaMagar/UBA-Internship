@@ -7,9 +7,11 @@ export const userResolvers = {
             return await userService.getUsers();
         },
         user: async (_: any, { id }: { id: string }): Promise<User | null> => {
-            const users = await userService.getUsers();
-            // return users.find(u => u.id === id) || null;
-            return await userService.getUserById(id);
+            try {
+                return await userService.getUserById(id);
+            } catch (error) {
+                return null;
+            }
         },
     },
 
@@ -22,8 +24,14 @@ export const userResolvers = {
             return await userService.updateUser(id, input);
         },
 
-        deleteUser: async (_: any, { id }: { id: string }): Promise<User> => {
-            return await userService.deleteUser(id);
+        deleteUser: async (_: any, { id }: { id: string }): Promise<Boolean> => {
+            try {
+                await userService.deleteUser(id);
+                return true
+
+            } catch (error) {
+                return false;
+            }
         }
     }
 };

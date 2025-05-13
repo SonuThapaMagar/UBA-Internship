@@ -21,19 +21,15 @@ export class UserController {
     }
 
     async userUpdate(req: Request, res: Response): Promise<void> {
-
-        const updatedUser = await userService.updateUser(
-            req.params.id,
-            req.body as UserOptions
-        );
+        const id = req.params.id as string;
+        const updatedUser = await userService.updateUser(id, req.body as UserOptions);
         res.status(200).json(updatedUser);
 
     }
 
     async userDelete(req: Request, res: Response): Promise<void> {
-
-        const deletedUser = await userService.deleteUser(req.params.id);
-        // res.status(204).json(deletedUser);
+        const id = req.params.id as string;
+        await userService.deleteUser(id);
         res.status(204).send();
 
     }

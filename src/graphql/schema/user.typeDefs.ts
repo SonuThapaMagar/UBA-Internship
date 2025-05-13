@@ -23,7 +23,7 @@ export const typeDefs = `#graphql
   type Mutation{
     createUser(input:UserInput!):User!
     updateUser(id:ID!, input:UserUpdateInput!):User!
-    deleteUser(id:ID!):User!
+    deleteUser(id:ID!):Boolean!
   }
 
 `;

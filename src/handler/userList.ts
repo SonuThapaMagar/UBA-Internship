@@ -3,35 +3,16 @@ import { userService } from "../services/userService";
 
 export async function userList(options: UserOptions): Promise<void> {
   try {
-    const users: User[] = await userService.getUsers();
-    let filteredUsers = users;
-
-    if (options.fname || options.lname) {
-      filteredUsers = users.filter((user) => {
-        return (
-          (!options.fname ||
-            user.fname.toLowerCase().includes(options.fname.toLowerCase())) &&
-          (!options.lname ||
-            user.lname.toLowerCase().includes(options.lname.toLowerCase()))
-        );
-      });
-    }
-
-    if (filteredUsers.length === 0) {
-      console.log("No users found.");
+    const users: User[] = await userService.getUsers(options);
+    if (users.length === 0) {
+      console.log('No users found.');
       return;
     }
     console.log("Users:");
-    filteredUsers.forEach((user) => {
-      console.log(
-        `ID: ${user.id}, Name: ${user.fname} ${user.lname}`
-      );
+    users.forEach((user) => {
+      console.log(`ID: ${user.id}, Name: ${user.fname} ${user.lname}`);
     });
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error("Error reading users:", error.message);
-    } else {
-      console.error("An unknown error occurred.");
-    }
+  } catch (error) {
+    console.error('Error reading users:', error instanceof Error ? error.message : 'An unknown error occurred.');
   }
 };
