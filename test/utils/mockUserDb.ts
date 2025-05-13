@@ -9,7 +9,6 @@ type User = {
 
 export class mockUserDB {
   public users: User[] = [
-    // Changed from private to public
     { id: '5f8d0d55b54764421b7156c1', fname: 'John', lname: 'Doe' },
     { id: '5f8d0d55b54764421b7156c2', fname: 'Jane', lname: 'Smith' },
   ];

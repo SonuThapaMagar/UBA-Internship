@@ -37,9 +37,7 @@ describe('User routes', () => {
 
     beforeEach(async () => {
         vi.clearAllMocks();
-        // Resetting module cache to ensure fresh import
         vi.resetModules();
-        // Dynamically importing userRoutes
         userRoutes = (await import('../../../src/routes/userRoutes')).default;
         app = express();
         app.use(express.json());

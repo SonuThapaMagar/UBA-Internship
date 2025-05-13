@@ -3,7 +3,7 @@ import { UserService } from '../../../src/services/userService';
 import User from '../../../src/data/models/User.models';
 import { UserCreate, UserOptions } from '../../../src/types/User';
 
-// Define the type for the mocked User model to match Mongoose's interface
+// Defining the type for the mocked User model to match Mongoose's interface
 interface MockUserModel {
   new (data: UserCreate): {
     _id: string;
@@ -19,7 +19,6 @@ interface MockUserModel {
   lean: () => any;
 }
 
-// Create a mock user instance that will be returned by the mocked constructor
 const mockUserInstance = {
   _id: '507f1f77bcf86cd799439011',
   fname: 'John',
@@ -41,12 +40,9 @@ const mockUserInstance = {
   }),
 };
 
-// Mock the User model
 vi.mock('../../../src/data/models/User.models', () => {
-  // Mock constructor function with proper typing
   const MockUser = vi.fn().mockImplementation(() => mockUserInstance) as unknown as MockUserModel;
 
-  // Attach static methods to the constructor
   MockUser.find = vi.fn().mockReturnThis();
   MockUser.findById = vi.fn().mockReturnThis();
   MockUser.findByIdAndUpdate = vi.fn().mockReturnThis();
@@ -54,7 +50,7 @@ vi.mock('../../../src/data/models/User.models', () => {
   MockUser.lean = vi.fn();
 
   return {
-    default: MockUser, // Export the constructor as default
+    default: MockUser, 
   };
 });
 
@@ -73,7 +69,6 @@ describe('UserService', () => {
   const service = new UserService();
 
   beforeEach(() => {
-    // Reset mocks between tests
     vi.clearAllMocks();
   });
 
@@ -183,8 +178,8 @@ describe('UserService', () => {
 
       const result = await service.createUser(userData);
 
-      expect(User).toHaveBeenCalledWith(userData); // Verify constructor called with userData
-      expect(mockUserInstance.save).toHaveBeenCalled(); // Verify save was called
+      expect(User).toHaveBeenCalledWith(userData);
+      expect(mockUserInstance.save).toHaveBeenCalled(); 
       expect(result).toEqual({
         id: '507f1f77bcf86cd799439011',
         _id: '507f1f77bcf86cd799439011',
@@ -199,7 +194,6 @@ describe('UserService', () => {
         lname: 'Doe',
       };
 
-      // Mock save to throw an error
       mockUserInstance.save.mockRejectedValueOnce(new Error('Database error'));
 
       await expect(service.createUser(userData)).rejects.toThrow('Database error');
