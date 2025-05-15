@@ -3,7 +3,6 @@ import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
 import { typeDefs } from './graphql/schema/index';
 import { resolvers } from './graphql/resolvers/index';
-import { connectDB } from './data/mongo';
 import userRouter from './routes/userRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import dotenv from 'dotenv';
