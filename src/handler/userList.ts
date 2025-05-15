@@ -1,9 +1,9 @@
-import { getUsers } from "../db/dbHelper";
 import { User, UserOptions } from '../types/User'
+import { userService } from "../services/userService";
 
 export async function userList(options: UserOptions): Promise<void> {
   try {
-    const users: User[] = await getUsers();
+    const users: User[] = await userService.getUsers();
     let filteredUsers = users;
 
     if (options.fname || options.lname) {

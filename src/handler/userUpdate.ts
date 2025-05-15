@@ -1,23 +1,10 @@
-import { getUsers, saveUsers } from "../db/dbHelper";
-import { User,UserOptions } from "../types/User";
+import { UserOptions } from "../types/User";
+import { userService } from '../services/userService'
 
 export async function userUpdate(id: string, options: UserOptions): Promise<void> {
-
   try {
-    const users: User[] = await getUsers();
-    const userId = users.findIndex((user) => user.id === id);
-    if (userId === -1) {
-      console.log("User not found with ID:", id);
-      return;
-    }
-
-    const updatedUser = { ...users[userId] };
-    if (options.fname) updatedUser.fname = options.fname;
-    if (options.lname) updatedUser.lname = options.lname;
-
-    users[userId] = updatedUser;
-    await saveUsers(users);
-    console.log(`User updated successfully! ID: ${id}`);
+    const updatedUser = await userService.updateUser(id, options);
+    console.log(`User updated successfully! ID: ${updatedUser.id}`);
   } catch (error) {
     if (error instanceof Error) {
       console.error("Error updating user:", error.message);
@@ -25,4 +12,4 @@ export async function userUpdate(id: string, options: UserOptions): Promise<void
       console.error("An unknown error occurred.");
     }
   }
-};
+}
