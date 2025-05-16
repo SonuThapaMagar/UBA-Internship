@@ -1,3 +1,10 @@
+export type Address = {
+    id: string;
+    street: string;
+    city: string;
+    country: string;
+};
+
 export type User = {
     id: string,
     fname: string,

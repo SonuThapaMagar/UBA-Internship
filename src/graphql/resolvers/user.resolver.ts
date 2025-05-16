@@ -13,6 +13,9 @@ export const userResolvers = {
                 return null;
             }
         },
+        usersWithAddressCount: async (): Promise<any[]> => {
+            return await userService.getUsersWithAddressCount();
+        }
     },
 
     Mutation: {
@@ -32,6 +35,9 @@ export const userResolvers = {
             } catch (error) {
                 return false;
             }
-        }
+        },
+        createAddress: async (_: any, { userId, input }: { userId: string, input: { street: string, city: string, country: string } }): Promise<any> => {
+            return await userService.createAddress(userId, input);
+        },
     }
 };

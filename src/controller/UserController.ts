@@ -33,4 +33,10 @@ export class UserController {
         res.status(204).send();
 
     }
+
+    async createAddress(req: Request, res: Response): Promise<void> {
+        const userId = req.params.userId as string;
+        const address = await userService.createAddress(userId, req.body);
+        res.status(201).json(address);
+    }
 }

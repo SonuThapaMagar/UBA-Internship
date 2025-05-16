@@ -11,5 +11,6 @@ router.get('/', asyncHandler(controller.userList));
 router.get('/:id', validateUserId, asyncHandler(controller.getUserById));
 router.put('/:id', validateUserId, asyncHandler(controller.userUpdate));
 router.delete('/:id', validateUserId, asyncHandler(controller.userDelete));
+router.post('/:userId/addresses',validateUserId,asyncHandler(controller.createAddress))
 
 export default router;
