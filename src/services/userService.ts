@@ -1,21 +1,17 @@
-import { User as IUser, UserCreate, UserOptions } from '../types/User';
+import { UserCreate, UserOptions, AddressCreate, AddressOptions } from '../types/User';
 import { User } from '../entity/User';
-import { AppDataSource } from '../data/mysql';
 import { Address } from '../entity/Address';
+import { AppDataSource } from '../data/mysql';
 
 export class UserService {
     private userRepo = AppDataSource.getRepository(User);
     private addressRepo = AppDataSource.getRepository(Address);
 
-    async getUsers(options: UserOptions = {}): Promise<IUser[]> {
-        const where: any = {};
-        if (options.fname) where.fname = options.fname;
-        if (options.lname) where.lname = options.lname;
-
-        return await this.userRepo.find({ where, relations: ['addresses'] });
+    async getUsers(options?: UserOptions): Promise<User[]> {
+        return this.userRepo.find({ where: options ?? {} });
     }
 
-    async getUserById(id: string): Promise<IUser> {
+    async getUserById(id: string): Promise<User> {
         const user = await this.userRepo.findOne({ where: { id }, relations: ['addresses'] });
         if (!user) {
             throw new Error(`User with ID ${id} not found`);
@@ -23,22 +19,22 @@ export class UserService {
         return user;
     }
 
-    async createUser(userData: UserCreate): Promise<IUser> {
-        const newUser = this.userRepo.create(userData);
-        return await this.userRepo.save(newUser);;
+    async createUser(data: UserCreate): Promise<User> {
+        const newUser = this.userRepo.create(data);
+        return await this.userRepo.save(newUser);
     }
 
-    async updateUser(id: string, userData: UserOptions): Promise<IUser> {
-        const user = await this.userRepo.findOne({ where: { id }, relations: ['addresses'] });
+    async updateUser(id: string, data: UserOptions): Promise<User> {
+        const user = await this.userRepo.findOne({ where: { id } });
         if (!user) {
             throw new Error(`User with ID ${id} not found`);
         }
-        const updatedUser = this.userRepo.merge(user, userData);
-        return await this.userRepo.save(updatedUser);
+        this.userRepo.merge(user, data);
+        return this.userRepo.save(user);
     }
 
-    async deleteUser(id: string): Promise<IUser> {
-        const user = await this.userRepo.findOne({ where: { id }, relations: ['addresses'] });
+    async deleteUser(id: string): Promise<User> {
+        const user = await this.userRepo.findOne({ where: { id } });
         if (!user) {
             throw new Error(`User with ID ${id} not found`);
         }
@@ -46,31 +42,77 @@ export class UserService {
         return user;
     }
 
-    async createAddress(userId: string, addressData: {
-        street: string; city: string; country: string
-    }):
-        Promise<Address> {
-        const user = await this.userRepo.findOneBy({ id: userId });
+    async createAddress(userId: string, data: AddressCreate): Promise<Address> {
+        const user = await this.userRepo.findOne({ where: { id: userId } });
         if (!user) {
             throw new Error(`User with ID ${userId} not found`);
         }
-        const address = this.addressRepo.create({ ...addressData, user });
+        const address = this.addressRepo.create({ ...data, user });
         return await this.addressRepo.save(address);
     }
 
+    async getAddresses(userId?: string): Promise<Address[]> {
+        const where = userId ? { user: { id: userId } } : {};
+        return this.addressRepo.find({ where, relations: ['user'] });
+    }
+
+    async getAddressById(id: string): Promise<Address> {
+        const address = await this.addressRepo.findOne({ where: { id }, relations: ['user'] });
+        if (!address) {
+            throw new Error(`Address with ID ${id} not found`);
+        }
+        return address;
+    }
+
+    async updateAddress(id: string, data: AddressOptions): Promise<Address> {
+        const address = await this.addressRepo.findOne({ where: { id } });
+        if (!address) {
+            throw new Error(`Address with ID ${id} not found`);
+        }
+        this.addressRepo.merge(address, data);
+        return this.addressRepo.save(address);
+    }
+
+    async deleteAddress(id: string): Promise<Address> {
+        const address = await this.addressRepo.findOne({ where: { id } });
+        if (!address) {
+            throw new Error(`Address with ID ${id} not found`);
+        }
+        await this.addressRepo.remove(address);
+        return address;
+    }
 
     async getUsersWithAddressCount(): Promise<any[]> {
-        const query = `
-        WITH AddressCount AS (
-            SELECT userId, COUNT(*) as address_count
-            FROM address
-            GROUP BY userId
-        )
-            SELECT u.id, u.fname, u.lname, COALESCE(ac.address_count, 0) as address_count
-            FROM user u
-            LEFT JOIN AddressCount ac ON u.id = ac.userId
-       `;
-        return await this.userRepo.query(query);
+        return this.userRepo.query(`
+            WITH UserAddresses AS (
+                SELECT 
+                    u.id,
+                    u.fname,
+                    u.lname,
+                    COUNT(a.id) as address_count,
+                    JSON_ARRAYAGG(
+                        IF(a.id IS NOT NULL,
+                            JSON_OBJECT(
+                                'id', a.id,
+                                'street', a.street,
+                                'city', a.city,
+                                'country', a.country
+                            ),
+                            NULL
+                        )
+                    ) as addresses
+                FROM user u
+                LEFT JOIN address a ON u.id = a.userId
+                GROUP BY u.id, u.fname, u.lname
+            )
+            SELECT 
+                id,
+                fname,
+                lname,
+                address_count,
+                JSON_EXTRACT(addresses, '$[*]') as addresses
+            FROM UserAddresses
+            ORDER BY fname, lname
+        `);
     }
 }
-export const userService = new UserService();

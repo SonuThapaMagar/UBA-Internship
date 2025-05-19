@@ -1,22 +1,41 @@
-export type Address = {
+export interface Address {
     id: string;
     street: string;
     city: string;
     country: string;
-};
-
-export type User = {
-    id: string,
-    fname: string,
-    lname: string,
+    user?: User; 
 }
 
-export type UserCreate = {
+export interface User {
+    id: string;
+    fname: string;
+    lname: string;
+    addresses?: Address[]; 
+}
+
+export interface UserCreate {
     fname: string;
     lname: string;
 }
 
-export type UserOptions = {
+export interface UserOptions {
     fname?: string;
     lname?: string;
-};
+}
+
+export interface AddressCreate {
+    street: string;
+    city: string;
+    country: string;
+}
+
+export interface AddressOptions {
+    street?: string;
+    city?: string;
+    country?: string;
+}
+
+export interface UserWithAddressCount extends User {
+    address_count: number;
+    addresses: Address[];
+}

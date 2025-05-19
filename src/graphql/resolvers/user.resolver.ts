@@ -1,43 +1,37 @@
-import { userService } from "../../services/userService";
-import { User } from "../../types/User"
+import { UserService } from '../../services/userService';
+
+const userService = new UserService(); 
 
 export const userResolvers = {
     Query: {
-        users: async (): Promise<User[]> => {
+        users: async () => {
             return await userService.getUsers();
         },
-        user: async (_: any, { id }: { id: string }): Promise<User | null> => {
+        user: async (_: any, { id }: { id: string }) => {
             try {
                 return await userService.getUserById(id);
-            } catch (error) {
+            } catch {
                 return null;
             }
         },
-        usersWithAddressCount: async (): Promise<any[]> => {
-            return await userService.getUsersWithAddressCount();
-        }
     },
-
     Mutation: {
-        createUser: async (_: any, { input }: { input: { fname: string, lname: string } }): Promise<User> => {
+        createUser: async (_: any, { input }: { input: any }) => {
             return await userService.createUser(input);
         },
-
-        updateUser: async (_: any, { id, input }: { id: string, input: { fname?: string, lname?: string } }): Promise<User> => {
+        updateUser: async (_: any, { id, input }: { id: string; input: any }) => {
             return await userService.updateUser(id, input);
         },
-
-        deleteUser: async (_: any, { id }: { id: string }): Promise<Boolean> => {
+        deleteUser: async (_: any, { id }: { id: string }) => {
             try {
                 await userService.deleteUser(id);
-                return true
-
-            } catch (error) {
+                return true;
+            } catch {
                 return false;
             }
         },
-        createAddress: async (_: any, { userId, input }: { userId: string, input: { street: string, city: string, country: string } }): Promise<any> => {
+        createAddress: async (_: any, { userId, input }: { userId: string; input: any }) => {
             return await userService.createAddress(userId, input);
         },
-    }
+    },
 };

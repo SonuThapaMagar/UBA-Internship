@@ -1,23 +1,20 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { User } from "./User";
-
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { User } from './User';
 
 @Entity()
 export class Address {
     @PrimaryGeneratedColumn('uuid')
-    id: string
+    id: string;
 
-    @Column()
+    @Column({ type: 'varchar' })
     street: string;
 
-    @Column()
+    @Column({ type: 'varchar' })
     city: string;
 
-    @Column()
+    @Column({ type: 'varchar', nullable: false })
     country: string;
 
-    @ManyToOne(() => User, (user) => user.id, {
-        onDelete: 'CASCADE'
-    })
+    @ManyToOne(() => User, (user) => user.addresses, { nullable: false })
     user: User;
 }

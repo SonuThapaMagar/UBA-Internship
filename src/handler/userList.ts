@@ -1,7 +1,9 @@
-import { User, UserOptions } from '../types/User'
-import { userService } from "../services/userService";
+import { User, UserOptions } from '../types/User';
+import { UserService } from '../services/userService';
 
 export async function userList(options: UserOptions): Promise<void> {
+        const userService = new UserService(); 
+  
   try {
     const users: User[] = await userService.getUsers(options);
     if (users.length === 0) {
@@ -15,4 +17,4 @@ export async function userList(options: UserOptions): Promise<void> {
   } catch (error) {
     console.error('Error reading users:', error instanceof Error ? error.message : 'An unknown error occurred.');
   }
-};
+}

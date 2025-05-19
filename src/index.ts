@@ -1,83 +1,81 @@
-import yargs from "yargs";
+import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { userService } from "./services/userService";
-import { startServers } from "./app";
+import { UserService } from './services/userService';
+import { startServers } from './app';
 
 function setupCLI() {
+    const userService = new UserService();
     return yargs(hideBin(process.argv))
-        .scriptName("uba-ims")
-        .version("1.0.0")
+        .scriptName('uba-ims')
+        .version('1.0.0')
         .command(
-            "user:create",
-            "Create a new user",
+            'user:create',
+            'Create a new user',
             (yargs) => yargs
-                .option("fname", {
-                    type: "string",
+                .option('fname', {
+                    type: 'string',
                     demandOption: true,
-                    describe: "First name"
+                    describe: 'First name',
                 })
-                .option("lname", {
-                    type: "string",
+                .option('lname', {
+                    type: 'string',
                     demandOption: true,
-                    describe: "Last name"
+                    describe: 'Last name',
                 }),
             async (argv) => {
                 const newUser = await userService.createUser({
                     fname: argv.fname as string,
-                    lname: argv.lname as string
-                })
-                console.log("User created successfully!", newUser);
+                    lname: argv.lname as string,
+                });
+                console.log('User created successfully!', newUser);
             }
         )
         .command(
-            "user:list",
-            "List Users",
+            'user:list',
+            'List Users',
             (yargs) => yargs
-                .option("fname", {
-                    type: "string",
-                    describe: "First name"
+                .option('fname', {
+                    type: 'string',
+                    describe: 'First name',
                 })
-                .option("lname", {
-                    type: "string",
-                    describe: "Last name"
+                .option('lname', {
+                    type: 'string',
+                    describe: 'Last name',
                 }),
             async (argv) => {
                 const users = await userService.getUsers({
                     fname: argv.fname as string | undefined,
-                    lname: argv.lname as string | undefined
-                })
+                    lname: argv.lname as string | undefined,
+                });
                 console.table(users);
             }
         )
         .command(
-            "user:update <id>",
-            "Update a user by ID",
+            'user:update <id>',
+            'Update a user by ID',
             (yargs) => yargs
-                .positional("id", {
-                    describe: "User ID to update",
-                    type: "string"
+                .positional('id', {
+                    describe: 'User ID to update',
+                    type: 'string',
                 })
-                .option("fname", { type: "string", describe: "New First name" })
-                .option("lname", { type: "string", describe: "New Last name" }),
+                .option('fname', { type: 'string', describe: 'New First name' })
+                .option('lname', { type: 'string', describe: 'New Last name' }),
             async (argv) => {
                 const updatedUser = await userService.updateUser(argv.id as string, argv);
-                console.log("User updated successfully:", updatedUser);
+                console.log('User updated successfully:', updatedUser);
             }
-
         )
         .command(
-            "user:delete <id>",
-            "Delete a user by ID",
-            (yargs) => yargs.positional("id", {
-                describe: "User ID to delete",
-                type: "string"
+            'user:delete <id>',
+            'Delete a user by ID',
+            (yargs) => yargs.positional('id', {
+                describe: 'User ID to delete',
+                type: 'string',
             }),
             async (argv) => {
-                const deletedUser=await userService.deleteUser(argv.id as string);
-                console.log("User deleted successfully:", deletedUser);
-
+                const deletedUser = await userService.deleteUser(argv.id as string);
+                console.log('User deleted successfully:', deletedUser);
             }
-
         )
         .demandCommand()
         .strict()
