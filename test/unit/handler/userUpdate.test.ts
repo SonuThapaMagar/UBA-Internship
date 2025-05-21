@@ -1,68 +1,76 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { userUpdate } from '../../../src/handler/userUpdate';
-import { User, UserOptions } from '../../../src/types/User';
+import { UserService } from '../../../src/services/userService';
 
+vi.mock('../../../src/services/userService', () => ({
+    UserService: vi.fn(() => ({
+        updateUser: vi.fn()
+    }))
+}));
 
-vi.mock('../../../src/services/userService', () => {
-  const mockUserService = {
-    updateUser: vi.fn<(id: string, options: UserOptions) => Promise<User>>()
-  };
-  return {
-    userService: mockUserService
-  };
-});
+describe('userUpdate handler', () => {
+    let mockUpdateUser: ReturnType<typeof vi.fn>;
+    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+    let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
-describe('userUpdate', async() => {
-  const mockUserService = vi.mocked((await import('../../../src/services/userService')).userService);
+    beforeEach(() => {
+        mockUpdateUser = vi.fn();
+        const MockUserService = vi.mocked(UserService);
+        MockUserService.mockImplementation(() => ({
+            updateUser: mockUpdateUser
+        }) as any);
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockUserService.updateUser.mockReset();
-  });
+        consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+    });
 
-  it('should log success message when user is updated successfully', async () => {
-   
-    const mockUser: User = { id: '1', fname: 'John', lname: 'Doe' };
-    mockUserService.updateUser.mockResolvedValue(mockUser);
-    const consoleSpy = vi.spyOn(console, 'log');
-    const id = '1';
-    const options: UserOptions = { fname: 'John', lname: 'Doe' };
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
 
-   
-    await userUpdate(id, options);
+    it('should successfully update a user and log success', async () => {
+        const id = '123';
+        const options = { fname: 'Updated' };
+        const mockUpdatedUser = { id: '123', fname: 'Updated', lname: 'User' };
 
-   
-    expect(mockUserService.updateUser).toHaveBeenCalledWith(id, options);
-    expect(consoleSpy).toHaveBeenCalledWith('User updated successfully! ID: 1');
-  });
+        mockUpdateUser.mockResolvedValue(mockUpdatedUser);
 
-  it('should handle known errors gracefully', async () => {
-   
-    mockUserService.updateUser.mockRejectedValue(new Error('Database error'));
-    const consoleSpy = vi.spyOn(console, 'error');
-    const id = '1';
-    const options: UserOptions = { fname: 'John', lname: 'Doe' };
+        await userUpdate(id, options);
 
-   
-    await userUpdate(id, options);
+        expect(mockUpdateUser).toHaveBeenCalledWith(id, options);
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+            'User updated successfully! ID: 123'
+        );
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
 
-   
-    expect(mockUserService.updateUser).toHaveBeenCalledWith(id, options);
-    expect(consoleSpy).toHaveBeenCalledWith('Error updating user:', 'Database error');
-  });
+    it('should handle errors and log error message', async () => {
+        const id = '123';
+        const options = { fname: 'Updated' };
+        const mockError = new Error('Update failed');
 
-  it('should handle unknown errors gracefully', async () => {
-   
-    mockUserService.updateUser.mockRejectedValue('Some weird error');
-    const consoleSpy = vi.spyOn(console, 'error');
-    const id = '1';
-    const options: UserOptions = { fname: 'John', lname: 'Doe' };
+        mockUpdateUser.mockRejectedValue(mockError);
 
-   
-    await userUpdate(id, options);
+        await userUpdate(id, options);
 
-   
-    expect(mockUserService.updateUser).toHaveBeenCalledWith(id, options);
-    expect(consoleSpy).toHaveBeenCalledWith('An unknown error occurred.');
-  });
+        expect(mockUpdateUser).toHaveBeenCalledWith(id, options);
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            'Error updating user:',
+            'Update failed'
+        );
+        expect(consoleLogSpy).not.toHaveBeenCalled();
+    });
+
+    it('should handle unknown errors', async () => {
+        const id = '123';
+        const options = { fname: 'Updated' };
+
+        mockUpdateUser.mockRejectedValue('Non-error value');
+
+        await userUpdate(id, options);
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            'An unknown error occurred.'
+        );
+    });
 });

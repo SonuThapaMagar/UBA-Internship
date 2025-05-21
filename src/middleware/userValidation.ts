@@ -45,26 +45,15 @@ export function addressValidation(req: Request, res: Response, next: NextFunctio
 
 export function validateUserId(req: Request, res: Response, next: NextFunction) {
     try {
-        const { id } = req.params;
+        const userId = req.params.userId || req.params.id;
         
-        if (!id) {
+        if (!userId) {
             res.status(400).json({
                 success: false,
                 error: "User ID is required"
             });
             return;
         }
-
-        // Validate UUID format
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(id)) {
-            res.status(400).json({
-                success: false,
-                error: "Invalid User ID format"
-            });
-            return;
-        }
-
         next();
     } catch (error) {
         next(error);

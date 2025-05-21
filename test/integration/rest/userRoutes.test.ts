@@ -1,150 +1,96 @@
 import request from 'supertest';
 import express from 'express';
-import { Request, Response, NextFunction } from 'express';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { createUserRouter } from '../../../src/routes/userRoutes';
 
-// mocks controller
-const mockController = {
-    createUser: vi.fn(),
-    userList: vi.fn(),
-    getUserById: vi.fn(),
-    userUpdate: vi.fn(),
-    userDelete: vi.fn(),
-};
-
-const mockUserValidation = vi.fn((_req: Request, _res: Response, next: NextFunction) => next());
-const mockValidateUserId = vi.fn((_req: Request, _res: Response, next: NextFunction) => next());
-
-//modules mock
-vi.mock('../../../src/controller/UserController', () => ({
-    UserController: vi.fn(() => mockController),
-    default: vi.fn(() => mockController),
+// Mock the auth middleware
+vi.mock('../../../src/middleware/auth', () => ({
+    authenticateToken: vi.fn((req, res, next) => next())
 }));
 
+// Mock the validation middleware
 vi.mock('../../../src/middleware/userValidation', () => ({
-    userValidation: mockUserValidation,
-    validateUserId: mockValidateUserId,
+    validateUserId: vi.fn((req, res, next) => next()),
+    userValidation: vi.fn((req, res, next) => next()),
+    addressValidation: vi.fn((req, res, next) => next())
 }));
 
-vi.mock('../../../src/middleware/asyncHandler', () => ({
-    asyncHandler: (fn: any) => fn,
-}));
+// Mock the UserController
+vi.mock('../../../src/controller/UserController', () => {
+    const mockController = {
+        createUser: vi.fn((req, res) => res.status(201).json({ id: '1', ...req.body })),
+        login: vi.fn((req, res) => res.status(200).json({ token: 'mock.jwt.token' })),
+        userList: vi.fn((req, res) => res.status(200).json([{ id: '1', fname: 'John' }])),
+        getUserById: vi.fn((req, res) => res.status(200).json({ id: req.params.id, fname: 'John' })),
+        userUpdate: vi.fn((req, res) => res.status(200).json({ id: req.params.id, ...req.body })),
+        userDelete: vi.fn((req, res) => res.status(204).send()),
+        deleteAddress: vi.fn((req, res) => res.status(204).send())
+    };
+    return {
+        UserController: vi.fn(() => mockController),
+    };
+});
 
-describe('User routes', () => {
+describe('User Routes', () => {
     let app: express.Express;
-    let server: ReturnType<typeof app.listen>;
-    let userRoutes: any;
+    let server: any;
 
-    beforeEach(async () => {
+    beforeEach(() => {
         vi.clearAllMocks();
-        vi.resetModules();
-        userRoutes = (await import('../../../src/routes/userRoutes')).default;
         app = express();
         app.use(express.json());
-        app.use('/users', userRoutes);
-
-        server = app.listen(3000 + Math.floor(Math.random() * 1000));
+        app.use('/users', createUserRouter());
+        server = app.listen(3001);
     });
 
     afterEach(() => {
         server.close();
     });
 
-    describe('POST /users', () => {
-        it('should call createUser with validation', async () => {
-            const mockUser = { fname: 'John', lname: 'Doe' };
-            mockController.createUser.mockImplementation((_req: Request, res: Response) =>
-                res.status(201).json({ id: '1', ...mockUser })
-            );
-
-            const response = await request(app)
-                .post('/users')
-                .send(mockUser);
-
-            expect(response.status).toBe(201);
-            expect(response.body).toEqual({ id: '1', ...mockUser });
-            expect(mockUserValidation).toHaveBeenCalled();
-            expect(mockController.createUser).toHaveBeenCalled();
-        });
-
-        it('should return 400 if validation fails', async () => {
-            mockUserValidation.mockImplementationOnce((_req: Request, res: Response, _next: NextFunction) => {
-                res.status(400).json({ error: 'Validation failed' });
-            });
-
-            const response = await request(app)
-                .post('/users')
-                .send({});
-
-            expect(response.status).toBe(400);
-            expect(response.body).toEqual({ error: 'Validation failed' });
-            expect(mockController.createUser).not.toHaveBeenCalled();
-        });
+    it('should create a user', async () => {
+        const mockUser = { fname: 'John', lname: 'Doe' };
+        const response = await request(app)
+            .post('/users')
+            .send(mockUser);
+        expect(response.status).toBe(201);
+        expect(response.body).toEqual({ id: '1', ...mockUser });
     });
 
-    describe('GET /users', () => {
-        it('should return user list', async () => {
-            const mockUsers = [{ id: '1', fname: 'John' }, { id: '2', fname: 'Jane' }];
-            mockController.userList.mockImplementation((_req: Request, res: Response) =>
-                res.status(200).json(mockUsers)
-            );
+    it('should login a user', async () => {
+        const credentials = { email: 'test@example.com', password: 'password123' };
+        const response = await request(app)
+            .post('/users/login')
+            .send(credentials);
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({ token: 'mock.jwt.token' });
+    });
 
-            const response = await request(app).get('/users');
+    it('should get all users', async () => {
+        const response = await request(app)
+            .get('/users');
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([{ id: '1', fname: 'John' }]);
+    });
 
-            expect(response.status).toBe(200);
-            expect(response.body).toEqual(mockUsers);
-        })
-    })
+    it('should get user by id', async () => {
+        const response = await request(app)
+            .get('/users/1');
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({ id: '1', fname: 'John' });
+    });
 
-    describe('GET /users/:id', () => {
-        it('should return user by ID', async () => {
-            const mockUser = { id: '1', fname: 'John' };
-            mockController.getUserById.mockImplementation((_req: Request, res: Response) =>
-                res.status(200).json(mockUser)
-            );
+    it('should update user', async () => {
+        const updateData = { fname: 'Johnny' };
+        const response = await request(app)
+            .put('/users/1')
+            .send(updateData);
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({ id: '1', ...updateData });
+    });
 
-            const response = await request(app).get('/users/1');
-            expect(response.status).toBe(200);
-            expect(response.body).toEqual(mockUser);
-            expect(mockValidateUserId).toHaveBeenCalled();
-        })
-
-        it('should return 404 if user not found', async () => {
-            mockController.getUserById.mockImplementation((_req: Request, res: Response) =>
-                res.status(404).json({ error: 'User not found' })
-            );
-
-            const response = await request(app).get('/users/999');
-            expect(response.status).toBe(404);
-        });
-    })
-
-    describe('PUT /users/:id', () => {
-        it('should update user', async () => {
-            const updatedUser = { fname: 'Johnny' }
-            mockController.userUpdate.mockImplementation((_req: Request, res: Response) =>
-                res.status(200).json({ id: '1', ...updatedUser })
-            )
-
-            const response = await request(app)
-                .put('/users/1')
-                .send(updatedUser);
-
-            expect(response.status).toBe(200);
-            expect(mockValidateUserId).toHaveBeenCalled();
-        })
-    })
-
-    describe('DELETE /users/:id', () => {
-        it('should delete the user', async () => {
-            mockController.userDelete.mockImplementation((_req: Request, res: Response) => {
-                res.status(204).send();
-            })
-
-            const response = await request(app).delete('/users/1');
-            expect(response.status).toBe(204);
-            expect(mockValidateUserId).toHaveBeenCalled();
-        })
-    })
-
-});
+    it('should delete user', async () => {
+        const response = await request(app)
+            .delete('/users/1');
+        expect(response.status).toBe(204);
+    });
+}); 

@@ -16,11 +16,15 @@ export interface User {
 export interface UserCreate {
     fname: string;
     lname: string;
+    email:string;
+    password:string;
 }
 
 export interface UserOptions {
     fname?: string;
     lname?: string;
+    email?:string;
+    password?:string
 }
 
 export interface AddressCreate {

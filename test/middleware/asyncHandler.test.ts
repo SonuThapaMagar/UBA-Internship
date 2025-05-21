@@ -1,37 +1,65 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { asyncHandler } from '../../src/middleware/asyncHandler';
 import { Request, Response, NextFunction } from 'express';
+import { asyncHandler } from '../../src/middleware/asyncHandler';
 
-describe('asyncHandler', () => {
-  let req = {} as Request;
-  let res = {} as Response;
-  let next: NextFunction;
+describe('Async Handler Middleware', () => {
+    let mockReq: Partial<Request>;
+    let mockRes: Partial<Response>;
+    let mockNext: NextFunction;
 
-  beforeEach(() => {
-    next = vi.fn();
-  });
+    beforeEach(() => {
+        mockReq = {};
+        mockRes = {
+            json: vi.fn(),
+            status: vi.fn().mockReturnThis(),
+        };
+        mockNext = vi.fn();
+    });
 
-  const runMiddleware = async (fn: any) =>
-    asyncHandler(fn)(req, res, next);
+    it('should handle async functions successfully', async () => {
+        const mockAsyncFunction = async (req: Request, res: Response) => {
+            res.json({ success: true });
+        };
 
-  it('calls the wrapped function successfully', async () => {
-    const mockFn = vi.fn().mockResolvedValue(undefined);
-    await runMiddleware(mockFn);
-    expect(mockFn).toHaveBeenCalledWith(req, res, next);
-    expect(next).not.toHaveBeenCalled();
-  });
+        const handler = asyncHandler(mockAsyncFunction);
+        await handler(mockReq as Request, mockRes as Response, mockNext);
 
-  it('passes sync errors to next', async () => {
-    const error = new Error('Sync error');
-    const mockFn = vi.fn(() => { throw error; });
-    await runMiddleware(mockFn);
-    expect(next).toHaveBeenCalledWith(error);
-  });
+        expect(mockRes.json).toHaveBeenCalledWith({ success: true });
+        expect(mockNext).not.toHaveBeenCalled();
+    });
 
-  it('passes async errors to next', async () => {
-    const error = new Error('Async error');
-    const mockFn = vi.fn().mockRejectedValue(error);
-    await runMiddleware(mockFn);
-    expect(next).toHaveBeenCalledWith(error);
-  });
+    it('should catch and pass errors to next() for async errors', async () => {
+        const error = new Error('Test error');
+        const mockAsyncFunction = async () => {
+            throw error;
+        };
+
+        const handler = asyncHandler(mockAsyncFunction);
+        await handler(mockReq as Request, mockRes as Response, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(error);
+    });
+
+    it('should handle synchronous errors', () => {
+        const error = new Error('Sync error');
+        const mockSyncFunction = () => {
+            throw error;
+        };
+
+        const handler = asyncHandler(mockSyncFunction);
+        handler(mockReq as Request, mockRes as Response, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(error);
+    });
+
+    it('should work with middleware that uses next()', async () => {
+        const mockMiddleware = (req: Request, res: Response, next: NextFunction) => {
+            next();
+        };
+
+        const handler = asyncHandler(mockMiddleware);
+        await handler(mockReq as Request, mockRes as Response, mockNext);
+
+        expect(mockNext).toHaveBeenCalled();
+    });
 });

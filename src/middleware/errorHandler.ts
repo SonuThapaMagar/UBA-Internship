@@ -8,8 +8,8 @@ export function errorHandler(
 ) {
     console.error('Error:', err);
 
-    const status = err.status || 500;
-    const message = err.message || 'Internal Server Error';
+    const status = (err && typeof err === 'object' && 'status' in err && err.status) || 500;
+    const message = (err && typeof err === 'object' && 'message' in err && err.message) || 'Internal Server Error';
 
     res.status(status).json({
         success: false,

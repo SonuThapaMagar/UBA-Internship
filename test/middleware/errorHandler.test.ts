@@ -41,5 +41,73 @@ describe('errorHandler middleware', () => {
         });
     });
 
-})
+    it('should handle error with no message', () => {
+        const err = { status: 401 };
+        const res = createRes();
 
+        errorHandler(err, req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(401);
+        expect(res.json).toHaveBeenCalledWith({
+            success: false,
+            error: 'Internal Server Error',
+            statusCode: 401,
+        });
+    });
+
+    it('should handle error with no status', () => {
+        const err = { message: 'No status here' };
+        const res = createRes();
+
+        errorHandler(err, req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith({
+            success: false,
+            error: 'No status here',
+            statusCode: 500,
+        });
+    });
+
+    it('should handle string error', () => {
+        const err = 'String error';
+        const res = createRes();
+
+        errorHandler(err, req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith({
+            success: false,
+            error: 'Internal Server Error',
+            statusCode: 500,
+        });
+    });
+
+    it('should handle null error', () => {
+        const err = null;
+        const res = createRes();
+
+        errorHandler(err, req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith({
+            success: false,
+            error: 'Internal Server Error',
+            statusCode: 500,
+        });
+    });
+
+    it('should handle undefined error', () => {
+        const err = undefined;
+        const res = createRes();
+
+        errorHandler(err, req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith({
+            success: false,
+            error: 'Internal Server Error',
+            statusCode: 500,
+        });
+    });
+});

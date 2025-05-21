@@ -1,63 +1,85 @@
-import { describe, it, expect, vi } from 'vitest';
-import { userValidation, validateUserId } from '../../src/middleware/userValidation';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
+import { userValidation, addressValidation, validateUserId } from '../../src/middleware/userValidation';
 
-const createRes = () => {
-  const res = {} as Partial<Response>;
-  res.status = vi.fn().mockReturnThis();
-  res.json = vi.fn();
-  return res as Response;
-};
+describe('User Validation Middleware', () => {
+  let req: Partial<Request>;
+  let res: Partial<Response>;
+  let next: NextFunction;
 
-describe('userValidation middleware', () => {
-  const next = vi.fn();
-
-  it('should return 400 if fname or lname is missing', () => {
-    const req = { body: { fname: '', lname: '' } } as Request;
-    const res = createRes();
-
-    userValidation(new Error('test'), req, res, next);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Firstname and lastname are required' });
-    expect(next).not.toHaveBeenCalled();
+  beforeEach(() => {
+    req = { body: {}, params: {}, query: {} };
+    res = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis(),
+    };
+    next = vi.fn();
   });
 
-  it('should return 500 if fname and lname are present but an error is thrown', () => {
-    const req = { body: { fname: 'John', lname: 'Doe' } } as Request;
-    const res = createRes();
+  describe('userValidation', () => {
+    it('should call next if fname and lname are provided', () => {
+      req.body = { fname: 'John', lname: 'Doe' };
+      userValidation(req as Request, res as Response, next);
+      expect(next).toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+    });
 
-    userValidation(new Error('Something went wrong'), req, res, next);
+    it('should return 400 if fname or lname is missing', () => {
+      req.body = { fname: 'John' };
+      userValidation(req as Request, res as Response, next);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalled();
+    });
 
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Something went wrong' });
-    expect(next).toHaveBeenCalled();
+    it('should return 400 if fname or lname is not a string', () => {
+      req.body = { fname: 123, lname: 'Doe' };
+      userValidation(req as Request, res as Response, next);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('should call next with error if exception is thrown', () => {
+      const error = new Error('Test error');
+      const brokenReq = new Proxy({}, { get: () => { throw error; } });
+      userValidation(brokenReq as Request, res as Response, next);
+      expect(next).toHaveBeenCalledWith(error);
+    });
   });
-});
 
-describe('validateUserId middleware', () => {
-  const next = vi.fn();
+  describe('addressValidation', () => {
+    it('should call next if all fields are present', () => {
+      req.body = { street: 'A', city: 'B', country: 'C' };
+      addressValidation(req as Request, res as Response, next);
+      expect(next).toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+    });
 
-  it('should return 400 if user ID is missing', () => {
-    const req = { params: {} } as Request;
-    const res = createRes();
-
-    validateUserId(new Error('Missing ID'), req, res, next);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: 'User ID is required' });
-    expect(next).not.toHaveBeenCalled();
+    it('should return 400 if any field is missing', () => {
+      req.body = { street: 'A', city: 'B' };
+      addressValidation(req as Request, res as Response, next);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Street, city, and country are required' });
+      expect(next).not.toHaveBeenCalled();
+    });
   });
 
-  it('should call next if user ID is present', () => {
-    const req = { params: { id: '123' } } as unknown as Request;
-    const res = createRes();
+  describe('validateUserId', () => {
+    it('should return 400 if id is missing', () => {
+      req.params = {};
+      validateUserId(req as Request, res as Response, next);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'User ID is required'
+      });
+    });
 
-    validateUserId(new Error('Something went wrong'), req, res, next);
-
-    expect(next).toHaveBeenCalled();
-    // Optional: check error handling after next
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Something went wrong' });
+    it('should call next if id is valid', () => {
+      req.params = { id: '1' };
+      validateUserId(req as Request, res as Response, next);
+      expect(next).toHaveBeenCalled();
+    });
   });
 });

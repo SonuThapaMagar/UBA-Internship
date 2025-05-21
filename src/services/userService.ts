@@ -2,6 +2,8 @@ import { UserCreate, UserOptions, AddressCreate, AddressOptions } from '../types
 import { User } from '../entity/User';
 import { Address } from '../entity/Address';
 import { AppDataSource } from '../data/mysql';
+import * as bcrypt from 'bcrypt';
+import * as jwt from 'jsonwebtoken';
 
 export class UserService {
     private userRepo = AppDataSource.getRepository(User);
@@ -20,7 +22,8 @@ export class UserService {
     }
 
     async createUser(data: UserCreate): Promise<User> {
-        const newUser = this.userRepo.create(data);
+        const hashedPassword = await bcrypt.hash(data.password, 10);
+        const newUser = this.userRepo.create({ ...data, password: hashedPassword });
         return await this.userRepo.save(newUser);
     }
 
@@ -28,6 +31,9 @@ export class UserService {
         const user = await this.userRepo.findOne({ where: { id } });
         if (!user) {
             throw new Error(`User with ID ${id} not found`);
+        }
+        if (data.password) {
+            data.password = await bcrypt.hash(data.password, 10);
         }
         this.userRepo.merge(user, data);
         return this.userRepo.save(user);
@@ -114,5 +120,36 @@ export class UserService {
             FROM UserAddresses
             ORDER BY fname, lname
         `);
+    }
+
+    async login(email: string, password: string): Promise<string> {
+        console.log(`Attempting login for email: ${email}`);
+        const user = await this.userRepo.findOne({ where: { email } });
+        if (!user) {
+            console.log('User not found');
+            throw new Error('Invalid credentials');
+        }
+
+        console.log(`Found user: ${user.fname} ${user.lname}`);
+        console.log(`Stored password hash: ${user.password}`);
+        console.log(`Input password: ${password}`);
+        
+        const isValid = await bcrypt.compare(password, user.password);
+        console.log(`Password valid: ${isValid}`);
+
+        if (!isValid) {
+            throw new Error('Invalid credentials');
+        }
+
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            throw new Error('JWT_SECRET is not defined');
+        }
+        const token = jwt.sign(
+            { id: user.id, fname: user.fname, email: user.email },
+            secret,
+            { expiresIn: '1h' }
+        );
+        return token;
     }
 }

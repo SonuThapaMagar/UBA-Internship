@@ -12,6 +12,12 @@ export class User {
     @Column({ type: 'varchar' })
     lname: string;
 
+    @Column({type:'varchar'})
+    email:string;
+    
+    @Column({ type: 'varchar' })
+    password: string;
+
     @OneToMany(() => Address, (address) => address.user, { cascade: true })
     addresses: Address[];
 }

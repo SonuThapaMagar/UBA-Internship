@@ -17,6 +17,7 @@ export class UserController {
         this.getAddressById = this.getAddressById.bind(this);
         this.updateAddress = this.updateAddress.bind(this);
         this.deleteAddress = this.deleteAddress.bind(this);
+        this.login = this.login.bind(this);
     }
 
     async createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -69,6 +70,10 @@ export class UserController {
     async createAddress(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const userId = req.params.userId as string;
+            if (!userId) {
+                next(new Error('Missing userId parameter'));
+                return;
+            }
             const address = await this.userService.createAddress(userId, req.body as AddressCreate);
             res.status(201).json(address);
         } catch (error) {
@@ -88,7 +93,12 @@ export class UserController {
 
     async getAddressById(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const address = await this.userService.getAddressById(req.params.id);
+            const id = req.params.id as string;
+            if (!id) {
+                next(new Error('Missing address ID'));
+                return;
+            }
+            const address = await this.userService.getAddressById(id);
             res.status(200).json(address);
         } catch (error) {
             next(error);
@@ -98,6 +108,16 @@ export class UserController {
     async updateAddress(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const id = req.params.id as string;
+            if (!id) {
+                next(new Error('Missing address ID'));
+                return;
+            }
+            const allowedFields = ['street', 'city', 'country', 'postalCode', 'state', 'type'];
+            const hasValidField = Object.keys(req.body || {}).some(field => allowedFields.includes(field));
+            if (!hasValidField) {
+                next(new Error('Invalid update data'));
+                return;
+            }
             const updatedAddress = await this.userService.updateAddress(id, req.body as AddressOptions);
             res.status(200).json(updatedAddress);
         } catch (error) {
@@ -108,8 +128,26 @@ export class UserController {
     async deleteAddress(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const id = req.params.id as string;
+            if (!id) {
+                next(new Error('Missing address ID'));
+                return;
+            }
             await this.userService.deleteAddress(id);
             res.status(204).send();
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async login(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const { email, password } = req.body;
+            if (!email || !password) {
+                next(new Error('Email and password are required'));
+                return;
+            }
+            const token = await this.userService.login(email, password);
+            res.status(200).json({ token });
         } catch (error) {
             next(error);
         }

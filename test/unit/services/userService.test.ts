@@ -1,204 +1,317 @@
-import { describe, it, vi, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UserService } from '../../../src/services/userService';
-import User from '../../../src/data/models/User.models';
-import { UserCreate, UserOptions } from '../../../src/types/User';
+import { User } from '../../../src/entity/User';
+import { AppDataSource } from '../../../src/data/mysql';
+import { AddressCreate, AddressOptions, UserOptions } from '../../../src/types/User';
+import { Address } from '../../../src/entity/Address';
+import bcrypt from 'bcrypt';
 
-// Defining the type for the mocked User model to match Mongoose's interface
-interface MockUserModel {
-  new (data: UserCreate): {
-    _id: string;
-    fname: string;
-    lname: string;
-    save: () => Promise<any>;
-    toObject: () => any;
+// environment variable for tests
+process.env.JWT_SECRET = 'test-secret-key';
+
+vi.mock('../../../src/data/mysql', () => {
+  const mockUserRepo = {
+    find: vi.fn(),
+    findOne: vi.fn(),
+    create: vi.fn(),
+    save: vi.fn(),
+    merge: vi.fn(),
+    remove: vi.fn(),
+    query: vi.fn(),
   };
-  find: () => { lean: () => any };
-  findById: () => { lean: () => any };
-  findByIdAndUpdate: () => { lean: () => any };
-  findByIdAndDelete: () => { lean: () => any };
-  lean: () => any;
-}
-
-const mockUserInstance = {
-  _id: '507f1f77bcf86cd799439011',
-  fname: 'John',
-  lname: 'Doe',
-  save: vi.fn().mockResolvedValue({
-    _id: '507f1f77bcf86cd799439011',
-    fname: 'John',
-    lname: 'Doe',
-    toObject: vi.fn().mockReturnValue({
-      _id: '507f1f77bcf86cd799439011',
-      fname: 'John',
-      lname: 'Doe',
-    }),
-  }),
-  toObject: vi.fn().mockReturnValue({
-    _id: '507f1f77bcf86cd799439011',
-    fname: 'John',
-    lname: 'Doe',
-  }),
-};
-
-vi.mock('../../../src/data/models/User.models', () => {
-  const MockUser = vi.fn().mockImplementation(() => mockUserInstance) as unknown as MockUserModel;
-
-  MockUser.find = vi.fn().mockReturnThis();
-  MockUser.findById = vi.fn().mockReturnThis();
-  MockUser.findByIdAndUpdate = vi.fn().mockReturnThis();
-  MockUser.findByIdAndDelete = vi.fn().mockReturnThis();
-  MockUser.lean = vi.fn();
-
+  const mockAddressRepo = {
+    find: vi.fn(),
+    findOne: vi.fn(),
+    create: vi.fn(),
+    save: vi.fn(),
+    merge: vi.fn(),
+    remove: vi.fn(),
+  };
   return {
-    default: MockUser, 
+    AppDataSource: {
+      getRepository: vi.fn().mockImplementation((entity) => {
+        if (entity === User) return mockUserRepo;
+        if (entity === Address) return mockAddressRepo;
+        return {};
+      }),
+    },
   };
 });
 
-const mockUserDoc = {
-  _id: '507f1f77bcf86cd799439011',
-  fname: 'John',
-  lname: 'Doe',
-  toObject: () => ({
-    _id: '507f1f77bcf86cd799439011',
+describe('UserService', () => {
+  let userService: UserService;
+  let mockUserRepo: any;
+  let mockAddressRepo: any;
+
+  const mockUser: User = {
+    id: '1',
     fname: 'John',
     lname: 'Doe',
-  }),
-};
+    email: 'john@example.com',
+    password: 'hashedPassword123',
+    addresses: [],
+  };
 
-describe('UserService', () => {
-  const service = new UserService();
+  const mockAddress: Address = {
+    id: 'a1',
+    street: '123 Main St',
+    city: 'Metropolis',
+    country: 'USA',
+    user: mockUser,
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUserRepo = AppDataSource.getRepository(User);
+    mockAddressRepo = AppDataSource.getRepository(Address);
+    userService = new UserService();
   });
 
-  it('should return user list', async () => {
-    (User.find as any).mockReturnValueOnce({
-      lean: () => [
-        { _id: '1', fname: 'John', lname: 'Doe' },
-        { _id: '2', fname: 'Jane', lname: 'Smith' },
-      ],
+  describe('getUsers', () => {
+    it('should return a list of users', async () => {
+      const mockUsers = [mockUser];
+      mockUserRepo.find.mockResolvedValue(mockUsers);
+      const result = await userService.getUsers();
+      expect(result).toEqual(mockUsers);
+      expect(mockUserRepo.find).toHaveBeenCalledWith({ where: {} });
     });
 
-    const result = await service.getUsers();
-    expect(result).toEqual([
-      { id: '1', _id: '1', fname: 'John', lname: 'Doe' },
-      { id: '2', _id: '2', fname: 'Jane', lname: 'Smith' },
-    ]);
-  });
-
-  it('should return user by id', async () => {
-    (User.findById as any).mockReturnValueOnce({
-      lean: () => ({
-        _id: '507f1f77bcf86cd799439011',
-        fname: 'John',
-        lname: 'Doe',
-      }),
-    });
-
-    const result = await service.getUserById('507f1f77bcf86cd799439011');
-    expect(result).toEqual({
-      _id: '507f1f77bcf86cd799439011',
-      id: '507f1f77bcf86cd799439011',
-      fname: 'John',
-      lname: 'Doe',
+    it('should pass options to find', async () => {
+      const options = { fname: 'John' };
+      const mockUsers = [mockUser];
+      mockUserRepo.find.mockResolvedValue(mockUsers);
+      const result = await userService.getUsers(options);
+      expect(result).toEqual(mockUsers);
+      expect(mockUserRepo.find).toHaveBeenCalledWith({ where: options });
     });
   });
 
-  it('should update the user', async () => {
-    const updatedData = {
-      fname: 'Updated',
-      lname: 'User',
-    };
-    (User.findByIdAndUpdate as any).mockReturnValueOnce({
-      lean: () => ({
-        _id: '507f1f77bcf86cd799439011',
-        ...updatedData,
-      }),
-    });
-
-    const result = await service.updateUser('507f1f77bcf86cd799439011', updatedData);
-    expect(result).toEqual({
-      id: '507f1f77bcf86cd799439011',
-      _id: '507f1f77bcf86cd799439011',
-      fname: 'Updated',
-      lname: 'User',
-    });
-  });
-
-  it('should throw an error if update user not found', async () => {
-    (User.findByIdAndUpdate as any).mockReturnValueOnce({
-      lean: () => null,
-    });
-
-    await expect(service.updateUser('nonexistent-id', { fname: 'Test' })).rejects.toThrow(
-      'User not found'
-    );
-  });
-
-  it('should throw error if user not found', async () => {
-    (User.findById as any).mockReturnValueOnce({
-      lean: () => null,
-    });
-    await expect(service.getUserById('not-found-id')).rejects.toThrow('User not found');
-  });
-
-  it('should delete the user', async () => {
-    (User.findByIdAndDelete as any).mockReturnValueOnce({
-      lean: () => ({
-        _id: '507f1f77bcf86cd799439011',
-        fname: 'Deleted',
-        lname: 'User',
-      }),
-    });
-
-    const result = await service.deleteUser('507f1f77bcf86cd799439011');
-    expect(result).toEqual({
-      id: '507f1f77bcf86cd799439011',
-      _id: '507f1f77bcf86cd799439011',
-      fname: 'Deleted',
-      lname: 'User',
-    });
-  });
-
-  it('should throw an error if delete user not found', async () => {
-    (User.findByIdAndDelete as any).mockReturnValueOnce({
-      lean: () => null,
-    });
-
-    await expect(service.deleteUser('invalid-id')).rejects.toThrow('User not found');
-  });
-
-  describe('createUser', () => {
-    it('should create a new user', async () => {
-      const userData: UserCreate = {
-        fname: 'John',
-        lname: 'Doe',
-      };
-
-      const result = await service.createUser(userData);
-
-      expect(User).toHaveBeenCalledWith(userData);
-      expect(mockUserInstance.save).toHaveBeenCalled(); 
-      expect(result).toEqual({
-        id: '507f1f77bcf86cd799439011',
-        _id: '507f1f77bcf86cd799439011',
-        fname: 'John',
-        lname: 'Doe',
+  describe('getUserById', () => {
+    it('should return a user by ID', async () => {
+      mockUserRepo.findOne.mockResolvedValue(mockUser);
+      const result = await userService.getUserById('1');
+      expect(result).toEqual(mockUser);
+      expect(mockUserRepo.findOne).toHaveBeenCalledWith({
+        where: { id: '1' },
+        relations: ['addresses'],
       });
     });
 
-    it('should throw an error if user creation fails', async () => {
-      const userData: UserCreate = {
+    it('should throw if user not found', async () => {
+      mockUserRepo.findOne.mockResolvedValue(null);
+      await expect(userService.getUserById('999')).rejects.toThrow('User with ID 999 not found');
+      expect(mockUserRepo.findOne).toHaveBeenCalledWith({
+        where: { id: '999' },
+        relations: ['addresses'],
+      });
+    });
+  });
+
+  describe('createUser', () => {
+    it('should create and save a user', async () => {
+      const input = { 
+        fname: 'Jane', 
+        lname: 'Doe',
+        email: 'jane@example.com',
+        password: 'password123'
+      };
+      const newUser = { ...mockUser, ...input };
+      mockUserRepo.create.mockReturnValue(newUser);
+      mockUserRepo.save.mockResolvedValue(newUser);
+      const result = await userService.createUser(input);
+      expect(result).toEqual(newUser);
+      expect(mockUserRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+        fname: input.fname,
+        lname: input.lname,
+        email: input.email
+      }));
+      expect(mockUserRepo.save).toHaveBeenCalledWith(newUser);
+    });
+  });
+
+  describe('updateUser', () => {
+    it('should update an existing user', async () => {
+      const input = { fname: 'John Updated' };
+      mockUserRepo.findOne.mockResolvedValue(mockUser);
+      mockUserRepo.merge.mockImplementation((user: User, updates: UserOptions) => {
+        Object.assign(user, updates);
+        return user;
+      });
+      mockUserRepo.save.mockResolvedValue(mockUser);
+      const result = await userService.updateUser('1', input);
+      expect(result).toEqual(mockUser);
+      expect(mockUserRepo.findOne).toHaveBeenCalledWith({ where: { id: '1' } });
+      expect(mockUserRepo.merge).toHaveBeenCalledWith(mockUser, input);
+      expect(mockUserRepo.save).toHaveBeenCalledWith(mockUser);
+    });
+
+    it('should throw if user not found', async () => {
+      mockUserRepo.findOne.mockResolvedValue(null);
+      await expect(userService.updateUser('999', { fname: 'Test' })).rejects.toThrow(
+        'User with ID 999 not found',
+      );
+      expect(mockUserRepo.findOne).toHaveBeenCalledWith({ where: { id: '999' } });
+    });
+  });
+
+  describe('deleteUser', () => {
+    it('should delete a user and return it', async () => {
+      mockUserRepo.findOne.mockResolvedValue(mockUser);
+      mockUserRepo.remove.mockResolvedValue(undefined);
+      const result = await userService.deleteUser('1');
+      expect(result).toEqual(mockUser);
+      expect(mockUserRepo.findOne).toHaveBeenCalledWith({ where: { id: '1' } });
+      expect(mockUserRepo.remove).toHaveBeenCalledWith(mockUser);
+    });
+
+    it('should throw if user not found', async () => {
+      mockUserRepo.findOne.mockResolvedValue(null);
+      await expect(userService.deleteUser('999')).rejects.toThrow('User with ID 999 not found');
+      expect(mockUserRepo.findOne).toHaveBeenCalledWith({ where: { id: '999' } });
+    });
+  });
+
+  describe('createAddress', () => {
+    it('should create and save an address for a user', async () => {
+      mockUserRepo.findOne.mockResolvedValue(mockUser);
+      mockAddressRepo.create.mockReturnValue({ ...mockAddress, user: mockUser });
+      mockAddressRepo.save.mockResolvedValue(mockAddress);
+
+      const input: AddressCreate = { street: '123 Main St', city: 'Metropolis', country: 'USA' };
+      const result = await userService.createAddress('1', input);
+
+      expect(mockUserRepo.findOne).toHaveBeenCalledWith({ where: { id: '1' } });
+      expect(mockAddressRepo.create).toHaveBeenCalledWith({ ...input, user: mockUser });
+      expect(mockAddressRepo.save).toHaveBeenCalledWith({ ...mockAddress, user: mockUser });
+      expect(result).toEqual(mockAddress);
+    });
+    it('should throw if user not found', async () => {
+      mockUserRepo.findOne.mockResolvedValue(null);
+      await expect(userService.createAddress('999', { street: 'A', city: 'B', country: 'C' }))
+        .rejects.toThrow('User with ID 999 not found');
+    });
+  });
+
+  describe('getAddresses', () => {
+    it('should return all addresses if no userId', async () => {
+      const addresses = [mockAddress];
+      mockAddressRepo.find.mockResolvedValue(addresses);
+      const result = await userService.getAddresses();
+      expect(mockAddressRepo.find).toHaveBeenCalledWith({ where: {}, relations: ['user'] });
+      expect(result).toEqual(addresses);
+    });
+
+    it('should return addresses for a specific user', async () => {
+      const addresses = [mockAddress];
+      mockAddressRepo.find.mockResolvedValue(addresses);
+      const result = await userService.getAddresses('1');
+      expect(mockAddressRepo.find).toHaveBeenCalledWith({ where: { user: { id: '1' } }, relations: ['user'] });
+      expect(result).toEqual(addresses);
+    });
+  });
+
+  describe('getAddressById', () => {
+    it('should return an address by ID', async () => {
+      mockAddressRepo.findOne.mockResolvedValue(mockAddress);
+      const result = await userService.getAddressById('a1');
+      expect(mockAddressRepo.findOne).toHaveBeenCalledWith({ where: { id: 'a1' }, relations: ['user'] });
+      expect(result).toEqual(mockAddress);
+    });
+
+    it('should throw if address not found', async () => {
+      mockAddressRepo.findOne.mockResolvedValue(null);
+      await expect(userService.getAddressById('bad')).rejects.toThrow('Address with ID bad not found');
+    });
+  });
+
+  describe('updateAddress', () => {
+    it('should update an existing address', async () => {
+      const input: AddressOptions = { street: 'New St', city: 'New City', country: 'New Country' };
+      mockAddressRepo.findOne.mockResolvedValue(mockAddress);
+      mockAddressRepo.merge.mockImplementation((address: Address, updates: AddressOptions) => {
+        Object.assign(address, updates);
+        return address;
+      });
+      mockAddressRepo.save.mockResolvedValue({ ...mockAddress, ...input });
+
+      const result = await userService.updateAddress('a1', input);
+      expect(mockAddressRepo.findOne).toHaveBeenCalledWith({ where: { id: 'a1' } });
+      expect(mockAddressRepo.merge).toHaveBeenCalledWith(mockAddress, input);
+      expect(mockAddressRepo.save).toHaveBeenCalledWith(mockAddress);
+      expect(result).toEqual({ ...mockAddress, ...input });
+    });
+
+    it('should throw if address not found', async () => {
+      mockAddressRepo.findOne.mockResolvedValue(null);
+      await expect(userService.updateAddress('bad', { street: 'X' })).rejects.toThrow('Address with ID bad not found');
+    });
+  });
+
+  describe('deleteAddress', () => {
+    it('should delete an address and return it', async () => {
+      mockAddressRepo.findOne.mockResolvedValue(mockAddress);
+      mockAddressRepo.remove.mockResolvedValue(undefined);
+      const result = await userService.deleteAddress('a1');
+      expect(mockAddressRepo.findOne).toHaveBeenCalledWith({ where: { id: 'a1' } });
+      expect(mockAddressRepo.remove).toHaveBeenCalledWith(mockAddress);
+      expect(result).toEqual(mockAddress);
+    });
+
+    it('should throw if address not found', async () => {
+      mockAddressRepo.findOne.mockResolvedValue(null);
+      await expect(userService.deleteAddress('bad')).rejects.toThrow('Address with ID bad not found');
+    });
+  });
+
+  describe('getUsersWithAddressCount', () => {
+    it('should call userRepo.query and return the result', async () => {
+      const mockResult = [{ id: '1', fname: 'John', lname: 'Doe', address_count: 2, addresses: [] }];
+      mockUserRepo.query.mockResolvedValue(mockResult);
+      const result = await userService.getUsersWithAddressCount();
+      expect(mockUserRepo.query).toHaveBeenCalled();
+      expect(result).toEqual(mockResult);
+    });
+  });
+
+  describe('login', () => {
+    it('should login user and return token', async () => {
+      const mockUser = {
+        id: '1',
         fname: 'John',
         lname: 'Doe',
+        email: 'test@example.com',
+        password: await bcrypt.hash('password123', 10)
       };
+      mockUserRepo.findOne.mockResolvedValue(mockUser);
+      
+      const result = await userService.login('test@example.com', 'password123');
+      
+      expect(result).toBeDefined();
+      expect(typeof result).toBe('string');
+      expect(mockUserRepo.findOne).toHaveBeenCalledWith({ where: { email: 'test@example.com' } });
+    });
 
-      mockUserInstance.save.mockRejectedValueOnce(new Error('Database error'));
+    it('should throw error for invalid credentials', async () => {
+      const mockUser = {
+        id: '1',
+        fname: 'John',
+        lname: 'Doe',
+        email: 'test@example.com',
+        password: await bcrypt.hash('password123', 10)
+      };
+      mockUserRepo.findOne.mockResolvedValue(mockUser);
+      
+      await expect(userService.login('test@example.com', 'wrongpassword'))
+        .rejects
+        .toThrow('Invalid credentials');
+    });
 
-      await expect(service.createUser(userData)).rejects.toThrow('Database error');
-      expect(User).toHaveBeenCalledWith(userData); 
-      expect(mockUserInstance.save).toHaveBeenCalled(); 
+    it('should throw error for non-existent user', async () => {
+      mockUserRepo.findOne.mockResolvedValue(null);
+      
+      await expect(userService.login('nonexistent@example.com', 'password123'))
+        .rejects
+        .toThrow('Invalid credentials');
     });
   });
 });
