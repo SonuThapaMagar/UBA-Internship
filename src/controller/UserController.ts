@@ -18,6 +18,7 @@ export class UserController {
         this.updateAddress = this.updateAddress.bind(this);
         this.deleteAddress = this.deleteAddress.bind(this);
         this.login = this.login.bind(this);
+        this.refreshToken = this.refreshToken.bind(this);
     }
 
     async createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -146,8 +147,22 @@ export class UserController {
                 next(new Error('Email and password are required'));
                 return;
             }
-            const token = await this.userService.login(email, password);
-            res.status(200).json({ token });
+            const tokens = await this.userService.login(email, password);
+            res.status(200).json(tokens);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const { refreshToken } = req.body;
+            if (!refreshToken) {
+                next(new Error('Refresh token is required'));
+                return;
+            }
+            const tokens = await this.userService.refreshToken(refreshToken);
+            res.status(200).json(tokens);
         } catch (error) {
             next(error);
         }

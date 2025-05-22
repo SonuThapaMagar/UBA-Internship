@@ -18,6 +18,11 @@ export async function startServers() {
         const REST_PORT = process.env.REST_PORT || 3000;
         const GRAPHQL_PORT = process.env.GRAPHQL_PORT || 4000;
 
+        // Verify JWT secrets are set
+        if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+            throw new Error('JWT secrets are not defined in environment variables');
+        }
+
         // Initialize MySQL
         await initializeDataSource();
 

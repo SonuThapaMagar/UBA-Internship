@@ -23,7 +23,7 @@ export class UserService {
 
     async createUser(data: UserCreate): Promise<User> {
         const hashedPassword = await bcrypt.hash(data.password, 10);
-        const newUser = this.userRepo.create({ ...data, password: hashedPassword });
+        const newUser = this.userRepo.create({ ...data, password: hashedPassword, role: data.role || 'user' });
         return await this.userRepo.save(newUser);
     }
 
@@ -122,7 +122,47 @@ export class UserService {
         `);
     }
 
-    async login(email: string, password: string): Promise<string> {
+    async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+        const secret = process.env.JWT_SECRET;
+        const refreshSecret = process.env.JWT_REFRESH_SECRET;
+        
+        if (!secret || !refreshSecret) {
+            throw new Error('JWT secrets are not defined');
+        }
+
+        try {
+            // Verify the refresh token
+            const decoded = jwt.verify(refreshToken, refreshSecret) as { id: string; email: string };
+            
+            // Get the user
+            const user = await this.userRepo.findOne({ where: { id: decoded.id } });
+            if (!user) {
+                throw new Error('User not found');
+            }
+
+            // Generate new tokens
+            const accessToken = jwt.sign(
+                { id: user.id, fname: user.fname, email: user.email, role: user.role },
+                secret,
+                { expiresIn: '1h' }
+            );
+
+            const newRefreshToken = jwt.sign(
+                { id: user.id, email: user.email },
+                refreshSecret,
+                { expiresIn: '7d' }
+            );
+
+            return {
+                accessToken,
+                refreshToken: newRefreshToken
+            };
+        } catch (error) {
+            throw new Error('Invalid refresh token');
+        }
+    }
+
+    async login(email: string, password: string): Promise<{ accessToken: string; refreshToken: string }> {
         console.log(`Attempting login for email: ${email}`);
         const user = await this.userRepo.findOne({ where: { email } });
         if (!user) {
@@ -142,14 +182,27 @@ export class UserService {
         }
 
         const secret = process.env.JWT_SECRET;
-        if (!secret) {
-            throw new Error('JWT_SECRET is not defined');
+        const refreshSecret = process.env.JWT_REFRESH_SECRET;
+        
+        if (!secret || !refreshSecret) {
+            throw new Error('JWT secrets are not defined');
         }
-        const token = jwt.sign(
-            { id: user.id, fname: user.fname, email: user.email },
+
+        const accessToken = jwt.sign(
+            { id: user.id, fname: user.fname, email: user.email, role: user.role },
             secret,
             { expiresIn: '1h' }
         );
-        return token;
+
+        const refreshToken = jwt.sign(
+            { id: user.id, email: user.email },
+            refreshSecret,
+            { expiresIn: '7d' }
+        );
+
+        return {
+            accessToken,
+            refreshToken
+        };
     }
 }

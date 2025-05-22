@@ -10,14 +10,17 @@ export interface User {
     id: string;
     fname: string;
     lname: string;
+    email: string;
+    role: string;
     addresses?: Address[]; 
 }
 
 export interface UserCreate {
     fname: string;
     lname: string;
-    email:string;
-    password:string;
+    email: string;
+    password: string;
+    role?: string;
 }
 
 export interface UserOptions {
