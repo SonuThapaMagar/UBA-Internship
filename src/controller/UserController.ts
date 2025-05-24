@@ -1,12 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserService } from '../services/userService';
 import { UserCreate, UserOptions, AddressCreate, AddressOptions } from '../types/User';
+import { ERROR_MESSAGES } from '../constants/errorMessages';
 
 export class UserController {
-    private userService: UserService;
-
-    constructor(userService?: UserService) {
-        this.userService = userService || new UserService();
+    constructor(private readonly userService: UserService) {
         this.createUser = this.createUser.bind(this);
         this.userList = this.userList.bind(this);
         this.getUserById = this.getUserById.bind(this);
@@ -40,7 +38,9 @@ export class UserController {
 
     async getUserById(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const user = await this.userService.getUserById(req.params.id);
+            const { params } = req;
+            const { id } = params;
+            const user = await this.userService.getUserById(id);
             res.status(200).json(user);
         } catch (error) {
             next(error);
@@ -49,7 +49,8 @@ export class UserController {
 
     async userUpdate(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const id = req.params.id as string;
+            const { params } = req;
+            const { id } = params;
             const updatedUser = await this.userService.updateUser(id, req.body as UserOptions);
             res.status(200).json(updatedUser);
         } catch (error) {
@@ -59,7 +60,8 @@ export class UserController {
 
     async userDelete(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const id = req.params.id as string;
+            const { params } = req;
+            const { id } = params;
             await this.userService.deleteUser(id);
             res.status(204).send();
         } catch (error) {
@@ -93,7 +95,8 @@ export class UserController {
 
     async getAddressById(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const id = req.params.id as string;
+            const { params } = req;
+            const { id } = params;
             if (!id) {
                 next(new Error('Missing address ID'));
                 return;
@@ -107,7 +110,8 @@ export class UserController {
 
     async updateAddress(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const id = req.params.id as string;
+            const { params } = req;
+            const { id } = params;
             if (!id) {
                 next(new Error('Missing address ID'));
                 return;
@@ -127,12 +131,13 @@ export class UserController {
 
     async deleteAddress(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const id = req.params.id as string;
-            if (!id) {
-                next(new Error('Missing address ID'));
+            const { params } = req;
+            const { id: addressId } = params;
+            if (!addressId) {
+                next(new Error(ERROR_MESSAGES.MISSING_ADDRESS_ID));
                 return;
             }
-            await this.userService.deleteAddress(id);
+            await this.userService.deleteAddress(addressId);
             res.status(204).send();
         } catch (error) {
             next(error);

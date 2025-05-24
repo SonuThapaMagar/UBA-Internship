@@ -49,3 +49,17 @@ export const authenticateToken = (
         return;
     }
 };
+
+export const requireRole = (roles: string[]) => {
+    return (req: any, res: Response, next: NextFunction): void => {
+        if (!req.user || !roles.includes(req.user.role)) {
+            res.status(403).json({
+                success: false,
+                error: 'Insufficient permissions',
+                statusCode: 403
+            });
+            return;
+        }
+        next();
+    };
+};

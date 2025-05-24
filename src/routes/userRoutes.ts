@@ -3,7 +3,7 @@ import { UserController } from '../controller/UserController';
 import { userValidation, validateUserId, addressValidation } from '../middleware/userValidation';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { UserService } from '../services/userService';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, requireRole,  } from '../middleware/auth';
 
 export const createUserRouter = () => {
     const router: express.Router = express.Router();
@@ -24,7 +24,7 @@ export const createUserRouter = () => {
     router.delete('/addresses/:id', validateUserId, asyncHandler(controller.deleteAddress));
 
     // User routes
-    router.get('/', asyncHandler(controller.userList));
+    router.get('/admin', requireRole(['admin']), asyncHandler(controller.userList));
     router.get('/:id', validateUserId, asyncHandler(controller.getUserById));
     router.put('/:id', validateUserId, asyncHandler(controller.userUpdate));
     router.delete('/:id', validateUserId, asyncHandler(controller.deleteAddress));
@@ -32,3 +32,4 @@ export const createUserRouter = () => {
 
     return router;
 };
+
