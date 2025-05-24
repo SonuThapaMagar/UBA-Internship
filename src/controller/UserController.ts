@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserService } from '../services/userService';
 import { UserCreate, UserOptions, AddressCreate, AddressOptions } from '../types/User';
+import { ERROR_MESSAGES } from '../constants/errorMessages';
+import { ALLOWED_ADDRESS_FIELDS } from '../constants/allowedFields';
 
 export class UserController {
-    private userService: UserService;
-
-    constructor(userService?: UserService) {
-        this.userService = userService || new UserService();
+    constructor(private readonly userService: UserService) {
+        // Bind methods to preserve 'this' context
         this.createUser = this.createUser.bind(this);
         this.userList = this.userList.bind(this);
         this.getUserById = this.getUserById.bind(this);
@@ -23,7 +23,8 @@ export class UserController {
 
     async createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const newUser = await this.userService.createUser(req.body as UserCreate);
+            const { body } = req;
+            const newUser = await this.userService.createUser(body as UserCreate);
             res.status(201).json(newUser);
         } catch (error) {
             next(error);
@@ -32,7 +33,8 @@ export class UserController {
 
     async userList(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const users = await this.userService.getUsers(req.query as UserOptions);
+            const { query } = req;
+            const users = await this.userService.getUsers(query as UserOptions);
             res.status(200).json(users);
         } catch (error) {
             next(error);
@@ -41,7 +43,9 @@ export class UserController {
 
     async getUserById(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const user = await this.userService.getUserById(req.params.id);
+            const { params } = req;
+            const { id } = params;
+            const user = await this.userService.getUserById(id);
             res.status(200).json(user);
         } catch (error) {
             next(error);
@@ -50,8 +54,9 @@ export class UserController {
 
     async userUpdate(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const id = req.params.id as string;
-            const updatedUser = await this.userService.updateUser(id, req.body as UserOptions);
+            const { params, body } = req;
+            const { id } = params;
+            const updatedUser = await this.userService.updateUser(id, body as UserOptions);
             res.status(200).json(updatedUser);
         } catch (error) {
             next(error);
@@ -60,8 +65,9 @@ export class UserController {
 
     async userDelete(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const id = req.params.id as string;
-            await this.userService.deleteUser(id);
+            const { params } = req;
+            const { id: userId } = params;
+            await this.userService.deleteUser(userId);
             res.status(204).send();
         } catch (error) {
             next(error);
@@ -70,12 +76,9 @@ export class UserController {
 
     async createAddress(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const userId = req.params.userId as string;
-            if (!userId) {
-                next(new Error('Missing userId parameter'));
-                return;
-            }
-            const address = await this.userService.createAddress(userId, req.body as AddressCreate);
+            const { params, body } = req;
+            const { userId } = params;
+            const address = await this.userService.createAddress(userId, body as AddressCreate);
             res.status(201).json(address);
         } catch (error) {
             next(error);
@@ -84,8 +87,9 @@ export class UserController {
 
     async addressList(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const userId = req.query.userId as string | undefined;
-            const addresses = await this.userService.getAddresses(userId);
+            const { query } = req;
+            const { userId } = query;
+            const addresses = await this.userService.getAddresses(userId as string | undefined);
             res.status(200).json(addresses);
         } catch (error) {
             next(error);
@@ -94,12 +98,9 @@ export class UserController {
 
     async getAddressById(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const id = req.params.id as string;
-            if (!id) {
-                next(new Error('Missing address ID'));
-                return;
-            }
-            const address = await this.userService.getAddressById(id);
+            const { params } = req;
+            const { id: addressId } = params;
+            const address = await this.userService.getAddressById(addressId);
             res.status(200).json(address);
         } catch (error) {
             next(error);
@@ -108,18 +109,16 @@ export class UserController {
 
     async updateAddress(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const id = req.params.id as string;
-            if (!id) {
-                next(new Error('Missing address ID'));
-                return;
-            }
-            const allowedFields = ['street', 'city', 'country', 'postalCode', 'state', 'type'];
-            const hasValidField = Object.keys(req.body || {}).some(field => allowedFields.includes(field));
+            const { params, body } = req;
+            const { id: addressId } = params;
+            const hasValidField = Object.keys(body || {}).some(field =>
+                ALLOWED_ADDRESS_FIELDS.includes(field as typeof ALLOWED_ADDRESS_FIELDS[number])
+            );
             if (!hasValidField) {
-                next(new Error('Invalid update data'));
+                next(new Error(ERROR_MESSAGES.INVALID_UPDATE_DATA));
                 return;
             }
-            const updatedAddress = await this.userService.updateAddress(id, req.body as AddressOptions);
+            const updatedAddress = await this.userService.updateAddress(addressId, body as AddressOptions);
             res.status(200).json(updatedAddress);
         } catch (error) {
             next(error);
@@ -128,12 +127,9 @@ export class UserController {
 
     async deleteAddress(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const id = req.params.id as string;
-            if (!id) {
-                next(new Error('Missing address ID'));
-                return;
-            }
-            await this.userService.deleteAddress(id);
+            const { params } = req;
+            const { id: addressId } = params;
+            await this.userService.deleteAddress(addressId);
             res.status(204).send();
         } catch (error) {
             next(error);
@@ -143,10 +139,6 @@ export class UserController {
     async login(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const { email, password } = req.body;
-            if (!email || !password) {
-                next(new Error('Email and password are required'));
-                return;
-            }
             const tokens = await this.userService.login(email, password);
             res.status(200).json(tokens);
         } catch (error) {
@@ -157,10 +149,6 @@ export class UserController {
     async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const { refreshToken } = req.body;
-            if (!refreshToken) {
-                next(new Error('Refresh token is required'));
-                return;
-            }
             const tokens = await this.userService.refreshToken(refreshToken);
             res.status(200).json(tokens);
         } catch (error) {

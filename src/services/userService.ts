@@ -4,10 +4,22 @@ import { Address } from '../entity/Address';
 import { AppDataSource } from '../data/mysql';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
+import { Repository } from 'typeorm';
+import { OAuthToken } from '../entities/OAuthToken';
+import { OAuthClient } from '../entities/OAuthClient';
 
 export class UserService {
-    private userRepo = AppDataSource.getRepository(User);
-    private addressRepo = AppDataSource.getRepository(Address);
+    private userRepo: Repository<User>;
+    private addressRepo: Repository<Address>;
+    private tokenRepo: Repository<OAuthToken>;
+    private clientRepo: Repository<OAuthClient>;
+
+    constructor() {
+        this.userRepo = AppDataSource.getRepository(User);
+        this.addressRepo = AppDataSource.getRepository(Address);
+        this.tokenRepo = AppDataSource.getRepository(OAuthToken);
+        this.clientRepo = AppDataSource.getRepository(OAuthClient);
+    }
 
     async getUsers(options?: UserOptions): Promise<User[]> {
         return this.userRepo.find({ where: options ?? {} });
@@ -204,5 +216,51 @@ export class UserService {
             accessToken,
             refreshToken
         };
+    }
+
+    async getAccessToken(token: string): Promise<OAuthToken | null> {
+        return this.tokenRepo.findOne({
+            where: { accessToken: token },
+            relations: ['user', 'client']
+        });
+    }
+
+    async getClient(clientId: string, clientSecret: string): Promise<OAuthClient | null> {
+        return this.clientRepo.findOne({
+            where: { clientId, clientSecret }
+        });
+    }
+
+    async saveToken(token: any, client: OAuthClient, user: User): Promise<OAuthToken> {
+        const newToken = this.tokenRepo.create({
+            accessToken: token.accessToken,
+            refreshToken: token.refreshToken,
+            client,
+            user,
+            expiresAt: new Date(Date.now() + token.accessTokenLifetime * 1000)
+        });
+        return this.tokenRepo.save(newToken);
+    }
+
+    async authenticateUser(username: string, password: string): Promise<User | null> {
+        const user = await this.userRepo.findOne({
+            where: { email: username }
+        });
+
+        if (!user || !await bcrypt.compare(password, user.password)) {
+            throw new Error('Invalid credentials');
+        }
+
+        return user;
+    }
+
+    async validateScope(user: User, client: OAuthClient, scope: string): Promise<string[]> {
+        const userRole = user.role;
+        const allowedScopes: Record<string, string[]> = {
+            admin: ['read', 'write', 'delete', 'admin'],
+            user: ['read', 'write']
+        };
+
+        return allowedScopes[userRole] || ['read'];
     }
 }
