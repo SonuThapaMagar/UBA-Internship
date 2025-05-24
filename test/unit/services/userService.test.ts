@@ -48,8 +48,9 @@ describe('UserService', () => {
     fname: 'John',
     lname: 'Doe',
     email: 'john@example.com',
-    password: 'hashedPassword123',
-    addresses: [],
+    password: 'hashedpassword',
+    role: 'user',
+    addresses: []
   };
 
   const mockAddress: Address = {

@@ -30,7 +30,7 @@ describe('User Resolvers', () => {
 
     describe('Query', () => {
         it('users: should return all users', async () => {
-            const users = [{ id: '1', fname: 'John', lname: 'Doe', addresses: [] }];
+            const users = [{ id: '1', fname: 'John', lname: 'Doe', email: 'john@example.com', password: 'hashedpassword', role: 'user', addresses: [] }];
             vi.mocked(mockUserService.getUsers).mockResolvedValue(users);
             const result = await userResolvers.Query.users();
             expect(result).toEqual(users);
@@ -38,7 +38,7 @@ describe('User Resolvers', () => {
         });
 
         it('user: should return a user by id', async () => {
-            const user = { id: '1', fname: 'John', lname: 'Doe', addresses: [] };
+            const user = { id: '1', fname: 'John', lname: 'Doe', email: 'john@example.com', password: 'hashedpassword', role: 'user', addresses: [] };
             vi.mocked(mockUserService.getUserById).mockResolvedValue(user);
             const result = await userResolvers.Query.user(null, { id: '1' });
             expect(result).toEqual(user);
@@ -55,7 +55,7 @@ describe('User Resolvers', () => {
     describe('Mutation', () => {
         it('createUser: should create a user', async () => {
             const input = { fname: 'Jane', lname: 'Smith' };
-            const createdUser = { id: '2', ...input, addresses: [] };
+            const createdUser = { id: '2', ...input, email: 'jane@example.com', password: 'hashedpassword', role: 'user', addresses: [] };
             vi.mocked(mockUserService.createUser).mockResolvedValue(createdUser);
             const result = await userResolvers.Mutation.createUser(null, { input });
             expect(result).toEqual(createdUser);
@@ -64,7 +64,7 @@ describe('User Resolvers', () => {
 
         it('updateUser: should update a user', async () => {
             const input = { fname: 'Jane', lname: 'Doe' };
-            const updatedUser = { id: '1', ...input, addresses: [] };
+            const updatedUser = { id: '1', ...input, email: 'jane@example.com', password: 'hashedpassword', role: 'user', addresses: [] };
             vi.mocked(mockUserService.updateUser).mockResolvedValue(updatedUser);
             const result = await userResolvers.Mutation.updateUser(null, { id: '1', input });
             expect(result).toEqual(updatedUser);
@@ -72,7 +72,7 @@ describe('User Resolvers', () => {
         });
 
         it('deleteUser: should delete a user and return true', async () => {
-            vi.mocked(mockUserService.deleteUser).mockResolvedValue({ id: '1', fname: 'John', lname: 'Doe', addresses: [] });
+            vi.mocked(mockUserService.deleteUser).mockResolvedValue({ id: '1', fname: 'John', lname: 'Doe', email: 'john@example.com', password: 'hashedpassword', role: 'user', addresses: [] });
             const result = await userResolvers.Mutation.deleteUser(null, { id: '1' });
             expect(result).toBe(true);
             expect(mockUserService.deleteUser).toHaveBeenCalledWith('1');
@@ -87,7 +87,7 @@ describe('User Resolvers', () => {
         it('createAddress: should create an address for a user', async () => {
             const userId = '1';
             const input = { street: '123 Main St', city: 'Metropolis', country: 'USA' };
-            const updatedUser = { id: userId, fname: 'John', lname: 'Doe', addresses: [input] };
+            const updatedUser = { id: userId, fname: 'John', lname: 'Doe', email: 'john@example.com', password: 'hashedpassword', role: 'user', addresses: [input] };
             vi.mocked(mockUserService.createAddress).mockResolvedValue(updatedUser as any); 
             const result = await userResolvers.Mutation.createAddress(null, { userId, input });
             expect(result).toEqual(updatedUser);

@@ -18,6 +18,9 @@ export class User {
     @Column({ type: 'varchar' })
     password: string;
 
+    @Column({ type: 'varchar', default: 'user' })
+    role: string;
+
     @OneToMany(() => Address, (address) => address.user, { cascade: true })
     addresses: Address[];
 }
