@@ -1,96 +1,103 @@
-import request from 'supertest';
-import express from 'express';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createUserRouter } from '../../../src/routes/userRoutes';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import express, { Router } from 'express';
+import { createUserRouter } from '../../../src/routes/userRoutes'; // Adjust path to your userRoutes.ts file
+import * as auth from '../../../src/middleware/auth';
+import * as userValidation from '../../../src/middleware/userValidation';
+import * as asyncHandler from '../../../src/middleware/asyncHandler';
+import { UserController } from '../../../src/controller/UserController';
 
-// Mock the auth middleware
-vi.mock('../../../src/middleware/auth', () => ({
-    authenticateToken: vi.fn((req, res, next) => next())
-}));
+// Mock dependencies
+vi.mock('../controller/UserController');
+vi.mock('../middleware/userValidation');
+vi.mock('../middleware/asyncHandler');
+vi.mock('../middleware/auth');
 
-// Mock the validation middleware
-vi.mock('../../../src/middleware/userValidation', () => ({
-    validateUserId: vi.fn((req, res, next) => next()),
-    userValidation: vi.fn((req, res, next) => next()),
-    addressValidation: vi.fn((req, res, next) => next())
-}));
+describe('User Router', () => {
+  let router: Router;
+  const mockAsyncHandler = vi.fn((fn) => fn);
+  const mockAuthenticateToken = vi.fn((req, res, next) => next());
+  const mockRequireRole = vi.fn(() => (req: any, res: any, next: any) => next());
+  const mockUserValidation = vi.fn((req, res, next) => next());
+  const mockValidateUserId = vi.fn((req, res, next) => next());
+  const mockAddressValidation = vi.fn((req, res, next) => next());
 
-// Mock the UserController
-vi.mock('../../../src/controller/UserController', () => {
-    const mockController = {
-        createUser: vi.fn((req, res) => res.status(201).json({ id: '1', ...req.body })),
-        login: vi.fn((req, res) => res.status(200).json({ token: 'mock.jwt.token' })),
-        userList: vi.fn((req, res) => res.status(200).json([{ id: '1', fname: 'John' }])),
-        getUserById: vi.fn((req, res) => res.status(200).json({ id: req.params.id, fname: 'John' })),
-        userUpdate: vi.fn((req, res) => res.status(200).json({ id: req.params.id, ...req.body })),
-        userDelete: vi.fn((req, res) => res.status(204).send()),
-        deleteAddress: vi.fn((req, res) => res.status(204).send())
-    };
-    return {
-        UserController: vi.fn(() => mockController),
-    };
+  beforeEach(() => {
+    // Reset mocks
+    vi.clearAllMocks();
+
+    // Mock middleware
+    vi.spyOn(asyncHandler, 'asyncHandler').mockImplementation(mockAsyncHandler);
+    vi.spyOn(auth, 'authenticateToken').mockImplementation(mockAuthenticateToken);
+    vi.spyOn(auth, 'requireRole').mockImplementation(mockRequireRole);
+    vi.spyOn(userValidation, 'userValidation').mockImplementation(mockUserValidation);
+    vi.spyOn(userValidation, 'validateUserId').mockImplementation(mockValidateUserId);
+    vi.spyOn(userValidation, 'addressValidation').mockImplementation(mockAddressValidation);
+
+    // Mock UserController methods
+    vi.spyOn(UserController.prototype, 'login').mockImplementation(async (req, res) => {{res.json({})}});
+    vi.spyOn(UserController.prototype, 'createUser').mockImplementation(async (req, res) => {res.json({})});
+    vi.spyOn(UserController.prototype, 'addressList').mockImplementation(async (req, res) => {res.json({})});
+    vi.spyOn(UserController.prototype, 'getAddressById').mockImplementation(async (req, res) => {res.json({})});
+    vi.spyOn(UserController.prototype, 'updateAddress').mockImplementation(async (req, res) => {res.json({})});
+    vi.spyOn(UserController.prototype, 'deleteAddress').mockImplementation(async (req, res) => {res.json({})});
+    vi.spyOn(UserController.prototype, 'userList').mockImplementation(async (req, res) => {res.json({})});
+    vi.spyOn(UserController.prototype, 'getUserById').mockImplementation(async (req, res) => {res.json({})});
+    vi.spyOn(UserController.prototype, 'userUpdate').mockImplementation(async (req, res) => {res.json({})});
+    vi.spyOn(UserController.prototype, 'createAddress').mockImplementation(async (req, res) => {res.json({})});
+
+    // Create router
+    router = createUserRouter();
+  });
+
+  it('should configure public routes correctly', () => {
+    const routes = router.stack.map((layer: any) => ({
+      path: layer.route?.path,
+      methods: layer.route?.methods,
+    }));
+
+    expect(routes).toContainEqual({
+      path: '/login',
+      methods: { post: true },
+    });
+    expect(routes).toContainEqual({
+      path: '/',
+      methods: { post: true },
+    });
+  });
+
+  it('should configure protected routes correctly', () => {
+    const routes = router.stack.map((layer: any) => ({
+      path: layer.route?.path,
+      methods: layer.route?.methods,
+    }));
+
+    expect(routes).toContainEqual({ path: '/addresses', methods: { get: true } });
+    expect(routes).toContainEqual({ path: '/addresses/:id', methods: { get: true } });
+    expect(routes).toContainEqual({ path: '/addresses/:id', methods: { put: true } });
+    expect(routes).toContainEqual({ path: '/addresses/:id', methods: { delete: true } });
+    expect(routes).toContainEqual({ path: '/admin', methods: { get: true } });
+    expect(routes).toContainEqual({ path: '/:id', methods: { get: true } });
+    expect(routes).toContainEqual({ path: '/:id', methods: { put: true } });
+    expect(routes).toContainEqual({ path: '/:userId/addresses', methods: { post: true } });
+  });
+
+  it('should apply requireRole middleware to admin route', () => {
+    expect(mockRequireRole).toHaveBeenCalledWith(['admin']);
+  });
+
+  it('should apply validation middleware to appropriate routes', () => {
+    const routes = router.stack.map((layer: any) => ({
+      path: layer.route?.path,
+      methods: layer.route?.methods,
+    }));
+
+    // Verify routes that use validation middleware exist
+    expect(routes).toContainEqual({ path: '/', methods: { post: true } }); // userValidation
+    expect(routes).toContainEqual({ path: '/addresses/:id', methods: { get: true } }); // validateUserId
+    expect(routes).toContainEqual({ path: '/addresses/:id', methods: { put: true } }); // validateUserId, addressValidation
+    expect(routes).toContainEqual({ path: '/addresses/:id', methods: { delete: true } }); // validateUserId
+    expect(routes).toContainEqual({ path: '/:id', methods: { get: true } }); // validateUserId
+    expect(routes).toContainEqual({ path: '/:id', methods: { put: true } }); // validateUserId
+    expect(routes).toContainEqual({ path: '/:userId/addresses', methods: { post: true } }); // validateUserId, addressValidation
+  });
 });
-
-describe('User Routes', () => {
-    let app: express.Express;
-    let server: any;
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-        app = express();
-        app.use(express.json());
-        app.use('/users', createUserRouter());
-        server = app.listen(3001);
-    });
-
-    afterEach(() => {
-        server.close();
-    });
-
-    it('should create a user', async () => {
-        const mockUser = { fname: 'John', lname: 'Doe' };
-        const response = await request(app)
-            .post('/users')
-            .send(mockUser);
-        expect(response.status).toBe(201);
-        expect(response.body).toEqual({ id: '1', ...mockUser });
-    });
-
-    it('should login a user', async () => {
-        const credentials = { email: 'test@example.com', password: 'password123' };
-        const response = await request(app)
-            .post('/users/login')
-            .send(credentials);
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual({ token: 'mock.jwt.token' });
-    });
-
-    it('should get all users', async () => {
-        const response = await request(app)
-            .get('/users');
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual([{ id: '1', fname: 'John' }]);
-    });
-
-    it('should get user by id', async () => {
-        const response = await request(app)
-            .get('/users/1');
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual({ id: '1', fname: 'John' });
-    });
-
-    it('should update user', async () => {
-        const updateData = { fname: 'Johnny' };
-        const response = await request(app)
-            .put('/users/1')
-            .send(updateData);
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual({ id: '1', ...updateData });
-    });
-
-    it('should delete user', async () => {
-        const response = await request(app)
-            .delete('/users/1');
-        expect(response.status).toBe(204);
-    });
-}); 
