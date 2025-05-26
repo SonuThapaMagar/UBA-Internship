@@ -18,6 +18,7 @@ export interface UserCreate {
     lname: string;
     email:string;
     password:string;
+    role?: string;
 }
 
 export interface UserOptions {

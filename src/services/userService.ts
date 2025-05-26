@@ -23,7 +23,11 @@ export class UserService {
 
     async createUser(data: UserCreate): Promise<User> {
         const hashedPassword = await bcrypt.hash(data.password, 10);
-        const newUser = this.userRepo.create({ ...data, password: hashedPassword });
+        const newUser = this.userRepo.create({ 
+            ...data, 
+            password: hashedPassword,
+            role: data.role || 'user'
+        });
         return await this.userRepo.save(newUser);
     }
 
@@ -129,7 +133,7 @@ export class UserService {
             console.log('User not found');
             throw new Error('Invalid credentials');
         }
-
+        console.log(`User role: ${user.role}`);
         console.log(`Found user: ${user.fname} ${user.lname}`);
         console.log(`Stored password hash: ${user.password}`);
         console.log(`Input password: ${password}`);
@@ -146,7 +150,7 @@ export class UserService {
             throw new Error('JWT_SECRET is not defined');
         }
         const token = jwt.sign(
-            { id: user.id, fname: user.fname, email: user.email },
+            { id: user.id, fname: user.fname, email: user.email,role: user.role.toLowerCase() },
             secret,
             { expiresIn: '1h' }
         );
