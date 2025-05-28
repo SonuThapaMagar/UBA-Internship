@@ -1,44 +1,39 @@
 export const typeDefs = `#graphql
   type User {
-    id: ID!
-    fname: String!
-    lname: String!
-    addresses: [Address!]
-  }
+        id: ID!
+        fname: String!
+        lname: String!
+        email: String!
+        role: String!
+        internships: [Internship!]
+    }
 
-  type Address {
-    id: ID!
-    street: String!
-    city: String!
-    country: String!
-    user: User!
-  }
+    type Internship {
+        id: ID!
+        joinedDate: String!
+        completionDate: String
+        isCertified: Boolean!
+        mentorName: String!
+        user: User!
+    }
 
-  input UserInput {
-    fname: String!
-    lname: String!
-  }
+    input UserInput {
+        fname: String!
+        lname: String!
+        email: String!
+        password: String!
+        role: String
+    }
 
-  input UserUpdateInput {
-    fname: String
-    lname: String
-  }
+    type Query {
+        user(id: ID!): User
+        users: [User!]
+    }
 
-  input AddressInput {
-    street: String!
-    city: String!
-    country: String!
-  }
-
-  type Query {
-    users: [User!]!
-    user(id: ID!): User
-  }
-
-  type Mutation {
-    createUser(input: UserInput!): User!
-    updateUser(id: ID!, input: UserUpdateInput!): User!
-    deleteUser(id: ID!): Boolean!
-    createAddress(userId: ID!, input: AddressInput!): Address!
-  }
+    type Mutation {
+        createUser(input: UserInput!): User
+        updateUser(id: ID!, input: UserInput!): User
+        deleteUser(id: ID!): Boolean
+        login(email: String!, password: String!): String
+    }
 `;

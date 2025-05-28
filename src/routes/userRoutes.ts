@@ -1,37 +1,46 @@
 import express from 'express';
 import { UserController } from '../controller/UserController';
-import { userValidation, validateUserId, addressValidation } from '../middleware/userValidation';
+import { userValidation, validateUserId, loginValidation, updateUserValidation } from '../middleware/userValidation';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { UserService } from '../services/userService';
 import { authenticateToken, requireRole, checkOwnership } from '../middleware/auth';
 import { UserRole } from '../types/auth.types';
+import { InternshipService } from '../services/internshipService';
+import { InternshipController } from '../controller/InternshipController';
 
 export const createUserRouter = () => {
     const router = express.Router();
     const userService = new UserService();
-    const controller = new UserController(userService);
+    const userController = new UserController(userService);
+    const internshipService = new InternshipService();
+    const internshipController = new InternshipController(internshipService);
 
     // Public routes
-    router.post('/login', asyncHandler(controller.login));
-    router.post('/', authenticateToken, requireRole([UserRole.ADMIN]), userValidation, asyncHandler(controller.createUser));
+    router.post('/register', userValidation, asyncHandler(userController.register));
+    router.post('/login', loginValidation, asyncHandler(userController.login));
+
     // Protected routes
     router.use(authenticateToken);
 
-    // Admin only routes
-    router.get('/', requireRole([UserRole.ADMIN]), asyncHandler(controller.userList));
-    router.get('/admin', requireRole([UserRole.ADMIN]), asyncHandler(controller.userList));
-    // User routes
-    router.get('/:id', checkOwnership, validateUserId, asyncHandler(controller.getUserById));
-    router.put('/:id', checkOwnership, validateUserId, asyncHandler(controller.userUpdate));
-    router.delete('/:id', checkOwnership, validateUserId, asyncHandler(controller.userDelete));
+    // Admin-only routes
+    router.get('/', requireRole([UserRole.ADMIN]), asyncHandler(userController.userList));
+    router.post(
+        '/:id/internship',
+        requireRole([UserRole.ADMIN]),
+        validateUserId,
+        asyncHandler(internshipController.createInternship)
+    );
 
-    // Address routes
-    router.get('/:userId/addresses', checkOwnership, validateUserId, asyncHandler(controller.addressList));
-    router.get('/:userId/addresses/:id', checkOwnership, validateUserId, asyncHandler(controller.getAddressById));
-    router.post('/:userId/addresses', checkOwnership, validateUserId, addressValidation, asyncHandler(controller.createAddress));
-    router.put('/:userId/addresses/:id', checkOwnership, validateUserId, addressValidation, asyncHandler(controller.updateAddress));
-    router.delete('/:userId/addresses/:id', checkOwnership, validateUserId, asyncHandler(controller.deleteAddress));
+    // User-specific routes
+    router.get('/:id', checkOwnership, validateUserId, asyncHandler(userController.getUserById));
+    router.put('/:id', checkOwnership, validateUserId, updateUserValidation, asyncHandler(userController.userUpdate));
+    router.delete('/:id', checkOwnership, validateUserId, asyncHandler(userController.userDelete));
+    router.get(
+        '/:id/internship',
+        checkOwnership,
+        validateUserId,
+        asyncHandler(internshipController.getInternships)
+    );
 
     return router;
 };
-

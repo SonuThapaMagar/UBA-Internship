@@ -1,61 +1,41 @@
 import { Request, Response, NextFunction } from 'express';
+import { body, param, validationResult, ValidationChain } from 'express-validator';
 
-export function userValidation(req: Request, res: Response, next: NextFunction) {
-    try {
-        const { fname, lname } = req.body;
-        
-        if (!fname || !lname) {
-            res.status(400).json({ 
-                success: false,
-                error: "Both firstname and lastname are required",
-                fields: {
-                    fname: !fname ? "First name is required" : null,
-                    lname: !lname ? "Last name is required" : null
-                }
-            });
-            return;
-        }
-
-        if (typeof fname !== 'string' || typeof lname !== 'string') {
-            res.status(400).json({
-                success: false,
-                error: "Invalid input type",
-                fields: {
-                    fname: typeof fname !== 'string' ? "First name must be a string" : null,
-                    lname: typeof lname !== 'string' ? "Last name must be a string" : null
-                }
-            });
-            return;
-        }
-
-        next();
-    } catch (error) {
-        next(error);
-    }
-}
-
-export function addressValidation(req: Request, res: Response, next: NextFunction): void {
-    const { street, city, country } = req.body;
-    if (!street || !city || !country) {
-        res.status(400).json({ error: 'Street, city, and country are required' });
-        return;
+const validationHandler = (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, errors: errors.array() });
     }
     next();
-}
+};
 
-export function validateUserId(req: Request, res: Response, next: NextFunction) {
-    try {
-        const userId = req.params.userId || req.params.id;
-        
-        if (!userId) {
-            res.status(400).json({
-                success: false,
-                error: "User ID is required"
-            });
-            return;
-        }
-        next();
-    } catch (error) {
-        next(error);
-    }
-}
+// For user creation (all fields required)
+export const userValidation: (ValidationChain | ((req: Request, res: Response, next: NextFunction) => void))[] = [
+    body('fname').notEmpty().withMessage('First name is required'),
+    body('lname').notEmpty().withMessage('Last name is required'),
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('role').optional().isIn(['admin', 'user', 'mentor']).withMessage('Invalid role'),
+    validationHandler,
+];
+
+// For user updates (all fields optional, validate only if provided)
+export const updateUserValidation: (ValidationChain | ((req: Request, res: Response, next: NextFunction) => void))[] = [
+    body('fname').if(body('fname').exists()).isString().withMessage('First name must be a string'),
+    body('lname').if(body('lname').exists()).isString().withMessage('Last name must be a string'),
+    body('email').if(body('email').exists()).isEmail().withMessage('Valid email is required'),
+    body('password').if(body('password').exists()).isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('role').if(body('role').exists()).isIn(['admin', 'user', 'mentor']).withMessage('Invalid role'),
+    validationHandler,
+];
+
+export const validateUserId: (ValidationChain | ((req: Request, res: Response, next: NextFunction) => void))[] = [
+    param('id').isUUID().withMessage('Valid UUID is required'),
+    validationHandler,
+];
+
+export const loginValidation: (ValidationChain | ((req: Request, res: Response, next: NextFunction) => void))[] = [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').notEmpty().withMessage('Password is required'),
+    validationHandler,
+];

@@ -1,9 +1,7 @@
-// src/types/auth.types.ts
-import { Request } from 'express';
-
 export enum UserRole {
     ADMIN = 'admin',
-    USER = 'user'
+    USER = 'user',
+    MENTOR = 'mentor',
 }
 
 export interface AuthUser {
