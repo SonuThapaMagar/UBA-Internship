@@ -10,11 +10,13 @@ export class UserController {
         this.userUpdate = this.userUpdate.bind(this);
         this.userDelete = this.userDelete.bind(this);
         this.login = this.login.bind(this);
+        this.refreshToken = this.refreshToken.bind(this);
     }
 
     async register(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const newUser = await this.userService.createUser(req.body as UserCreate);
+            const { body } = req;
+            const newUser = await this.userService.createUser(body as UserCreate);
             res.status(201).json(newUser);
         } catch (error) {
             next(error);
@@ -23,7 +25,8 @@ export class UserController {
 
     async userList(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const users = await this.userService.getUsers(req.query as UserOptions);
+            const { query } = req;
+            const users = await this.userService.getUsers(query as UserOptions);
             res.status(200).json(users);
         } catch (error) {
             next(error);
@@ -63,12 +66,18 @@ export class UserController {
     async login(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const { email, password } = req.body;
-            if (!email || !password) {
-                next(new Error('Email and password are required'));
-                return;
-            }
-            const token = await this.userService.login(email, password);
-            res.status(200).json({ token });
+            const tokens = await this.userService.login(email, password);
+            res.status(200).json(tokens);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const { refreshToken } = req.body;
+            const tokens = await this.userService.refreshToken(refreshToken);
+            res.status(200).json(tokens);
         } catch (error) {
             next(error);
         }
