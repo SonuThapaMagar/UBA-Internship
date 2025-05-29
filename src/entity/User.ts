@@ -1,26 +1,26 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { Address } from './Address';
+import { Internship } from './Internship';
 
-@Entity()
+@Entity({ name: 'users' })
 export class User {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ type: 'varchar' })
+    @Column({ type: 'varchar', length: 255 })
     fname: string;
 
-    @Column({ type: 'varchar' })
+    @Column({ type: 'varchar', length: 255 })
     lname: string;
 
-    @Column({type:'varchar'})
-    email:string;
-    
-    @Column({ type: 'varchar' })
+    @Column({ type: 'varchar', length: 255, unique: true })
+    email: string;
+
+    @Column({ type: 'varchar', length: 255 })
     password: string;
 
-    @Column({ type: 'varchar', default: 'user' })
+    @Column({ type: 'varchar', length: 50, default: 'user' })
     role: string;
 
-    @OneToMany(() => Address, (address) => address.user, { cascade: true })
-    addresses: Address[];
+    @OneToMany(() => Internship, (internship) => internship.user, { cascade: true })
+    internships: Internship[];
 }

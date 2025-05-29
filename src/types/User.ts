@@ -1,9 +1,11 @@
-export interface Address {
-    id: string;
-    street: string;
-    city: string;
-    country: string;
-    user?: User; 
+export interface Internship {
+    id: number;
+    userId: string;
+    joinedDate: Date;
+    completionDate?: Date | null;
+    isCertified: boolean;
+    mentorName: string;
+    user?: User;
 }
 
 export interface User {
@@ -11,8 +13,9 @@ export interface User {
     fname: string;
     lname: string;
     email: string;
+    password?: string;
     role: string;
-    addresses?: Address[]; 
+    internships?: Internship[];
 }
 
 export interface UserCreate {
@@ -26,23 +29,7 @@ export interface UserCreate {
 export interface UserOptions {
     fname?: string;
     lname?: string;
-    email?:string;
-    password?:string
-}
-
-export interface AddressCreate {
-    street: string;
-    city: string;
-    country: string;
-}
-
-export interface AddressOptions {
-    street?: string;
-    city?: string;
-    country?: string;
-}
-
-export interface UserWithAddressCount extends User {
-    address_count: number;
-    addresses: Address[];
+    email?: string;
+    password?: string;
+    role?: string;
 }

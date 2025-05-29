@@ -1,115 +1,41 @@
 import { Request, Response, NextFunction } from 'express';
+import { body, param, validationResult, ValidationChain } from 'express-validator';
 
-export function userValidation(req: Request, res: Response, next: NextFunction) {
-    try {
-        const { fname, lname, email, password, role } = req.body;
-        
-        if (!fname || !lname || !email || !password) {
-            res.status(400).json({ 
-                success: false,
-                error: "Required fields are missing",
-                fields: {
-                    fname: !fname ? "First name is required" : null,
-                    lname: !lname ? "Last name is required" : null,
-                    email: !email ? "Email is required" : null,
-                    password: !password ? "Password is required" : null
-                }
-            });
-            return;
-        }
-
-        if (typeof fname !== 'string' || typeof lname !== 'string' || typeof email !== 'string' || typeof password !== 'string') {
-            res.status(400).json({
-                success: false,
-                error: "Invalid input type",
-                fields: {
-                    fname: typeof fname !== 'string' ? "First name must be a string" : null,
-                    lname: typeof lname !== 'string' ? "Last name must be a string" : null,
-                    email: typeof email !== 'string' ? "Email must be a string" : null,
-                    password: typeof password !== 'string' ? "Password must be a string" : null
-                }
-            });
-            return;
-        }
-
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            res.status(400).json({
-                success: false,
-                error: "Invalid email format",
-                fields: {
-                    email: "Please provide a valid email address"
-                }
-            });
-            return;
-        }
-
-        // Validate admin email format
-        if (role === 'admin' && !email.toLowerCase().includes('admin')) {
-            res.status(400).json({
-                success: false,
-                error: "Invalid admin email",
-                fields: {
-                    email: "Admin email must contain 'admin' in the address"
-                }
-            });
-            return;
-        }
-
-        // Validate role if provided
-        if (role && !['admin', 'user'].includes(role)) {
-            res.status(400).json({
-                success: false,
-                error: "Invalid role",
-                fields: {
-                    role: "Role must be either 'admin' or 'user'"
-                }
-            });
-            return;
-        }
-
-        // Validate password strength
-        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
-        if (!passwordRegex.test(password)) {
-            res.status(400).json({
-                success: false,
-                error: "Weak password",
-                fields: {
-                    password: "Password must be at least 8 characters long and contain letters, numbers, and special characters"
-                }
-            });
-            return;
-        }
-
-        next();
-    } catch (error) {
-        next(error);
-    }
-}
-
-export function addressValidation(req: Request, res: Response, next: NextFunction): void {
-    const { street, city, country } = req.body;
-    if (!street || !city || !country) {
-        res.status(400).json({ error: 'Street, city, and country are required' });
-        return;
+const validationHandler = (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, errors: errors.array() });
     }
     next();
-}
+};
 
-export function validateUserId(req: Request, res: Response, next: NextFunction) {
-    try {
-        const userId = req.params.userId || req.params.id;
-        
-        if (!userId) {
-            res.status(400).json({
-                success: false,
-                error: "User ID is required"
-            });
-            return;
-        }
-        next();
-    } catch (error) {
-        next(error);
-    }
-}
+// For user creation (all fields required)
+export const userValidation: (ValidationChain | ((req: Request, res: Response, next: NextFunction) => void))[] = [
+    body('fname').notEmpty().withMessage('First name is required'),
+    body('lname').notEmpty().withMessage('Last name is required'),
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('role').optional().isIn(['admin', 'user', 'mentor']).withMessage('Invalid role'),
+    validationHandler,
+];
+
+// For user updates (all fields optional, validate only if provided)
+export const updateUserValidation: (ValidationChain | ((req: Request, res: Response, next: NextFunction) => void))[] = [
+    body('fname').if(body('fname').exists()).isString().withMessage('First name must be a string'),
+    body('lname').if(body('lname').exists()).isString().withMessage('Last name must be a string'),
+    body('email').if(body('email').exists()).isEmail().withMessage('Valid email is required'),
+    body('password').if(body('password').exists()).isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('role').if(body('role').exists()).isIn(['admin', 'user', 'mentor']).withMessage('Invalid role'),
+    validationHandler,
+];
+
+export const validateUserId: (ValidationChain | ((req: Request, res: Response, next: NextFunction) => void))[] = [
+    param('id').isUUID().withMessage('Valid UUID is required'),
+    validationHandler,
+];
+
+export const loginValidation: (ValidationChain | ((req: Request, res: Response, next: NextFunction) => void))[] = [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').notEmpty().withMessage('Password is required'),
+    validationHandler,
+];

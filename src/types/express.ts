@@ -1,7 +1,7 @@
-import { JwtPayload } from 'jsonwebtoken';
+import { AuthUser } from './auth.types';
 
 declare module 'express-serve-static-core' {
     interface Request {
-        user?: { id: string; fname: string; email: string };
+        user?: AuthUser;
     }
 }
