@@ -4,6 +4,7 @@ import { User } from '../../../src/entity/User';
 import { AppDataSource } from '../../../src/data/mysql';
 import { UserOptions } from '../../../src/types/User';
 import bcrypt from 'bcrypt';
+import { Internship } from '../../../src/entity/Internship';
 
 // environment variable for tests
 process.env.JWT_SECRET = 'test-secret-key';
@@ -23,6 +24,7 @@ vi.mock('../../../src/data/mysql', () => {
     AppDataSource: {
       getRepository: vi.fn().mockImplementation((entity) => {
         if (entity === User) return mockUserRepo;
+        if (entity === Internship) return { delete: vi.fn() };
         return {};
       }),
     },
@@ -32,6 +34,7 @@ vi.mock('../../../src/data/mysql', () => {
 describe('UserService', () => {
   let userService: UserService;
   let mockUserRepo: any;
+  let internRepoMock: any;
 
   const mockUser: User = {
     id: '1',
@@ -40,11 +43,13 @@ describe('UserService', () => {
     email: 'john@example.com',
     password: 'hashedpassword',
     role: 'user',
+    internships: []
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockUserRepo = AppDataSource.getRepository(User);
+    internRepoMock = AppDataSource.getRepository(Internship);
     userService = new UserService();
   });
 
@@ -54,7 +59,10 @@ describe('UserService', () => {
       mockUserRepo.find.mockResolvedValue(mockUsers);
       const result = await userService.getUsers();
       expect(result).toEqual(mockUsers);
-      expect(mockUserRepo.find).toHaveBeenCalledWith({ where: {} });
+      expect(mockUserRepo.find).toHaveBeenCalledWith({ 
+        where: {},
+        relations: ['internships']
+      });
     });
 
     it('should pass options to find', async () => {
@@ -63,7 +71,10 @@ describe('UserService', () => {
       mockUserRepo.find.mockResolvedValue(mockUsers);
       const result = await userService.getUsers(options);
       expect(result).toEqual(mockUsers);
-      expect(mockUserRepo.find).toHaveBeenCalledWith({ where: options });
+      expect(mockUserRepo.find).toHaveBeenCalledWith({ 
+        where: options,
+        relations: ['internships']
+      });
     });
   });
 
@@ -74,7 +85,7 @@ describe('UserService', () => {
       expect(result).toEqual(mockUser);
       expect(mockUserRepo.findOne).toHaveBeenCalledWith({
         where: { id: '1' },
-        relations: ['addresses'],
+        relations: ['internships']
       });
     });
 
@@ -83,7 +94,7 @@ describe('UserService', () => {
       await expect(userService.getUserById('999')).rejects.toThrow('User with ID 999 not found');
       expect(mockUserRepo.findOne).toHaveBeenCalledWith({
         where: { id: '999' },
-        relations: ['addresses'],
+        relations: ['internships']
       });
     });
   });
@@ -107,6 +118,17 @@ describe('UserService', () => {
         email: input.email
       }));
       expect(mockUserRepo.save).toHaveBeenCalledWith(newUser);
+    });
+
+    it('should throw error if email already exists', async () => {
+      const input = { 
+        fname: 'Jane', 
+        lname: 'Doe',
+        email: 'john@example.com',
+        password: 'password123'
+      };
+      mockUserRepo.findOne.mockResolvedValue(mockUser);
+      await expect(userService.createUser(input)).rejects.toThrow('Email already in use');
     });
   });
 
@@ -133,15 +155,39 @@ describe('UserService', () => {
       );
       expect(mockUserRepo.findOne).toHaveBeenCalledWith({ where: { id: '999' } });
     });
+
+    it('should hash password when updating', async () => {
+      const input = { password: 'newpassword123' };
+      mockUserRepo.findOne.mockResolvedValue(mockUser);
+      mockUserRepo.merge.mockImplementation((user: User, updates: UserOptions) => {
+        Object.assign(user, updates);
+        return user;
+      });
+      mockUserRepo.save.mockResolvedValue(mockUser);
+      const result = await userService.updateUser('1', input);
+      expect(result).toEqual(mockUser);
+      expect(mockUserRepo.merge).toHaveBeenCalledWith(mockUser, expect.objectContaining({
+        password: expect.not.stringMatching('newpassword123')
+      }));
+    });
+
+    it('should throw error if new email already exists', async () => {
+      const input = { email: 'existing@example.com' };
+      mockUserRepo.findOne.mockResolvedValue(mockUser);
+      mockUserRepo.findOne.mockResolvedValueOnce(mockUser).mockResolvedValueOnce({ ...mockUser, id: '2' });
+      await expect(userService.updateUser('1', input)).rejects.toThrow('Email already in use');
+    });
   });
 
   describe('deleteUser', () => {
     it('should delete a user and return it', async () => {
       mockUserRepo.findOne.mockResolvedValue(mockUser);
+      internRepoMock.delete = vi.fn().mockResolvedValue(undefined);
       mockUserRepo.remove.mockResolvedValue(undefined);
       const result = await userService.deleteUser('1');
       expect(result).toEqual(mockUser);
       expect(mockUserRepo.findOne).toHaveBeenCalledWith({ where: { id: '1' } });
+      expect(internRepoMock.delete).toHaveBeenCalledWith({ userId: '1' });
       expect(mockUserRepo.remove).toHaveBeenCalledWith(mockUser);
     });
 

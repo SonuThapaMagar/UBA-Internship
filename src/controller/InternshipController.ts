@@ -10,6 +10,11 @@ export class InternshipController {
 
     async createInternship(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
+            if (!req.body.mentorName || !req.body.joinedDate) {
+                next(new Error('Mentor name and joined date are required'));
+                return;
+            }
+
             const internshipData: InternshipCreate = {
                 userId: req.params.id,
                 mentorName: req.body.mentorName,

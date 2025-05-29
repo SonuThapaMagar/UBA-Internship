@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { UserService } from './services/userService';

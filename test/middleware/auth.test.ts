@@ -1,7 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { authenticateToken, requireRole, AuthRequest } from '../../src/middleware/auth';
-import { Response, NextFunction } from 'express';
+import { authenticateToken, requireRole } from '../../src/middleware/auth';
+import { Response, NextFunction, Request } from 'express';
 import * as jwt from 'jsonwebtoken';
+import { UserRole } from '../../src/types/auth.types';
+
+// Define AuthRequest type for testing
+interface AuthRequest extends Request {
+    user?: {
+        id: string;
+        fname: string;
+        email: string;
+        role: UserRole;
+    };
+}
 
 vi.mock('jsonwebtoken', () => ({
   verify: vi.fn(),
@@ -14,7 +25,9 @@ describe('Auth Middleware', () => {
 
     beforeEach(() => {
         // Reset mocks before each test
-        mockRequest = {};
+        mockRequest = {
+            headers: {},
+        };
         mockResponse = {
             status: vi.fn().mockReturnThis(),
             json: vi.fn().mockReturnThis(),
@@ -26,10 +39,8 @@ describe('Auth Middleware', () => {
 
     describe('authenticateToken', () => {
         it('should return 401 if no token is provided', () => {
-            mockRequest.headers = {};
-
             authenticateToken(
-                mockRequest as AuthRequest,
+                mockRequest as Request,
                 mockResponse as Response,
                 mockNext
             );
@@ -48,7 +59,7 @@ describe('Auth Middleware', () => {
             mockRequest.headers = { authorization: 'Bearer some-token' };
 
             authenticateToken(
-                mockRequest as AuthRequest,
+                mockRequest as Request,
                 mockResponse as Response,
                 mockNext
             );
@@ -69,7 +80,7 @@ describe('Auth Middleware', () => {
             });
 
             authenticateToken(
-                mockRequest as AuthRequest,
+                mockRequest as Request,
                 mockResponse as Response,
                 mockNext
             );
@@ -83,27 +94,32 @@ describe('Auth Middleware', () => {
             expect(mockNext).not.toHaveBeenCalled();
         });
 
-        // it('should call next if token is valid', () => {
-        //     mockRequest.headers = { authorization: 'Bearer valid-token' };
-        //     const decoded = { id: '123', fname: 'John', email: 'john@example.com' };
-        //     (jwt.verify as any).mockReturnValue(decoded);
+        it('should call next if token is valid', () => {
+            mockRequest.headers = { authorization: 'Bearer valid-token' };
+            const decoded = { id: '123', fname: 'John', email: 'john@example.com', role: UserRole.USER };
+            (vi.mocked(jwt.verify) as any).mockReturnValue(decoded);
 
-        //     authenticateToken(mockRequest as AuthRequest, mockResponse as Response, mockNext);
+            authenticateToken(
+                mockRequest as Request,
+                mockResponse as Response,
+                mockNext
+            );
 
-        //     expect(jwt.verify).toHaveBeenCalledWith('valid-token', 'test-secret');
-        //     expect(mockRequest.user).toEqual(decoded);
-        //     expect(mockNext).toHaveBeenCalled();
-        //     expect(mockResponse.status).not.toHaveBeenCalled();
-        // });
+            expect(jwt.verify).toHaveBeenCalledWith('valid-token', 'test-secret');
+            expect((mockRequest as AuthRequest).user).toEqual(decoded);
+            expect(mockNext).toHaveBeenCalled();
+            expect(mockResponse.status).not.toHaveBeenCalled();
+        });
     });
 
     describe('requireRole', () => {
-        const adminMiddleware = requireRole(['admin']);
+        const adminMiddleware = requireRole([UserRole.ADMIN]);
+        
         it('should return 403 if user is not authenticated', () => {
             mockRequest.user = undefined;
 
             adminMiddleware(
-                mockRequest as AuthRequest,
+                mockRequest as Request,
                 mockResponse as Response,
                 mockNext
             );
@@ -122,11 +138,11 @@ describe('Auth Middleware', () => {
                 id: '1',
                 fname: 'John',
                 email: 'john@example.com',
-                role: 'user',
+                role: UserRole.USER,
             };
 
             adminMiddleware(
-                mockRequest as AuthRequest,
+                mockRequest as Request,
                 mockResponse as Response,
                 mockNext
             );
@@ -138,6 +154,24 @@ describe('Auth Middleware', () => {
                 statusCode: 403,
             });
             expect(mockNext).not.toHaveBeenCalled();
+        });
+
+        it('should call next if user role is allowed', () => {
+            mockRequest.user = {
+                id: '1',
+                fname: 'Admin',
+                email: 'admin@example.com',
+                role: UserRole.ADMIN,
+            };
+
+            adminMiddleware(
+                mockRequest as Request,
+                mockResponse as Response,
+                mockNext
+            );
+
+            expect(mockNext).toHaveBeenCalled();
+            expect(mockResponse.status).not.toHaveBeenCalled();
         });
     });
 });

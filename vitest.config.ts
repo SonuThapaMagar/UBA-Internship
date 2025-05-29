@@ -15,6 +15,6 @@ export default defineConfig({
           '**/tests/**',
           '**/*.d.ts'
         ]
-      }
+      },
     }
   })

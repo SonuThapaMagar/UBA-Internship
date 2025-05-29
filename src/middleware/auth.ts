@@ -3,6 +3,15 @@ import * as jwt from 'jsonwebtoken';
 import { UserRole, AuthUser, AuthRequest } from '../types/auth.types';
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+    if (!process.env.JWT_SECRET) {
+        res.status(500).json({
+            success: false,
+            error: 'JWT_SECRET is not defined',
+            statusCode: 500,
+        });
+        return;
+    }
+
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
@@ -16,7 +25,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as AuthUser;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET) as AuthUser;
         (req as unknown as AuthRequest).user = decoded;
         next();
     } catch (error) {
@@ -32,10 +41,10 @@ export const requireRole = (roles: UserRole[]) => {
     return (req: Request, res: Response, next: NextFunction) => {
         const authReq = req as unknown as AuthRequest;
         if (!authReq.user) {
-            res.status(401).json({
+            res.status(403).json({
                 success: false,
-                error: 'Authentication required',
-                statusCode: 401,
+                error: 'Insufficient permissions',
+                statusCode: 403,
             });
             return;
         }
