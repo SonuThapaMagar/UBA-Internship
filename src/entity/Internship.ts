@@ -6,7 +6,7 @@ export class Internship {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @Column()
+    @Column({ type: 'varchar', length: 255 })
     userId: string;
 
     @Column({ type: 'varchar', length: 255 })
@@ -18,7 +18,7 @@ export class Internship {
     @Column({ type: 'date', nullable: true })
     completionDate!: Date | null;
 
-    @Column({ default: false })
+    @Column({ type: 'boolean', default: false })
     isCertified!: boolean;
 
     @ManyToOne(() => User, (user) => user.internships)

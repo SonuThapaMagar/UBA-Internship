@@ -13,8 +13,15 @@ export default defineConfig({
         exclude: [   
           '**/node_modules/**',
           '**/tests/**',
-          '**/*.d.ts'
+          '**/*.d.ts',
+          'src/types/*.ts',
+          'src/config/*.ts',
+          'src/migrations/*.ts',
+          'src/entity/*.ts',
+          'src/data/*.ts',
+          'src/index.ts',
+          'src/app.ts',
         ]
-      }
+      },
     }
   })

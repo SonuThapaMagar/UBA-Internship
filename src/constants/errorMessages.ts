@@ -1,3 +1,3 @@
-export const ERROR_MESSAGES = {
-    MISSING_ADDRESS_ID: 'Missing address ID',
-};
+export const ERROR_MESSAGES=[
+
+] as const;

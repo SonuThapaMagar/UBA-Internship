@@ -3,10 +3,10 @@ import dotenv from 'dotenv';
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
 import { initializeDataSource } from './data/mysql';
-import { typeDefs } from './graphql/schema';
-import { resolvers } from './graphql/resolvers';
-import { createUserRouter } from './routes/userRoutes';
-import { errorHandler } from './middleware/errorHandler';
+import { typeDefs } from './app/graphql/schema';
+import { resolvers } from './app/graphql/resolvers';
+import { createUserRouter } from './app/routes/userRoutes';
+import { errorHandler } from './app/middleware/errorHandler';
 import cors from 'cors';
 import { corsOptions } from './config/cors';
 
