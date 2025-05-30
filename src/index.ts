@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { UserService } from './services/userService';
+import { UserService } from './app/services/userService';
 import { startServers } from './app';
 
 function setupCLI() {
