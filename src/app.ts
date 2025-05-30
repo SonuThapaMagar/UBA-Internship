@@ -8,6 +8,7 @@ import { resolvers } from './app/graphql/resolvers';
 import { createUserRouter } from './app/routes/userRoutes';
 import { errorHandler } from './app/middleware/errorHandler';
 import cors from 'cors';
+import { corsOptions } from './config/cors';
 
 dotenv.config();
 
@@ -18,13 +19,18 @@ export async function startServers() {
         const REST_PORT = process.env.REST_PORT || 3000;
         const GRAPHQL_PORT = process.env.GRAPHQL_PORT || 4000;
 
+        // Verify JWT secrets are set
+        if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+            throw new Error('JWT secrets are not defined in environment variables');
+        }
+
         // Initialize MySQL
         await initializeDataSource();
 
         const app = express();
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
-        app.use(cors({ origin: 'http://localhost:8080' }));
+        app.use(cors(corsOptions));
 
         app.get('/', (req, res) => {
             res.send(`
