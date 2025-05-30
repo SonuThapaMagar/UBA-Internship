@@ -4,8 +4,9 @@ import { hideBin } from 'yargs/helpers';
 import { UserService } from './app/services/userService';
 import { startServers } from './app';
 
+const userService = new UserService();
+
 function setupCLI() {
-    const userService = new UserService();
     return yargs(hideBin(process.argv))
         .scriptName('uba-ims')
         .version('1.0.0')
@@ -27,8 +28,8 @@ function setupCLI() {
                 const newUser = await userService.createUser({
                     fname: argv.fname as string,
                     lname: argv.lname as string,
-                    email:argv.email as string,
-                    password:argv.password as string
+                    email: argv.email as string,
+                    password: argv.password as string
                 });
                 console.log('User created successfully!', newUser);
             }
@@ -49,7 +50,7 @@ function setupCLI() {
                 const users = await userService.getUsers({
                     fname: argv.fname as string | undefined,
                     lname: argv.lname as string | undefined,
-                    email:argv.email as string| undefined,
+                    email: argv.email as string | undefined,
                 });
                 console.table(users);
             }

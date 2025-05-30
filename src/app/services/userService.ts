@@ -59,7 +59,7 @@ export class UserService {
             throw new Error(`User with ID ${id} not found`);
         }
         // Delete associated internships first
-        await this.internRepo.delete({ user: { id } });
+        await this.internRepo.delete({ userId: id });
         await this.userRepo.remove(user);
         return user;
     }

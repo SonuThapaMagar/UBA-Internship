@@ -10,7 +10,6 @@ export class UserController {
         this.userUpdate = this.userUpdate.bind(this);
         this.userDelete = this.userDelete.bind(this);
         this.login = this.login.bind(this);
-        this.refreshToken = this.refreshToken.bind(this);
     }
 
     async register(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -73,13 +72,4 @@ export class UserController {
         }
     }
 
-    async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
-        try {
-            const { refreshToken } = req.body;
-            const tokens = await this.userService.refreshToken(refreshToken);
-            res.status(200).json(tokens);
-        } catch (error) {
-            next(error);
-        }
-    }
 }

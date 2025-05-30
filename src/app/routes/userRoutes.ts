@@ -22,8 +22,9 @@ export const createUserRouter = () => {
     // Protected routes
     router.use(authenticateToken);
 
+
+    router.get('/', requireRole([UserRole.ADMIN, UserRole.MENTOR]), asyncHandler(userController.userList));
     // Admin-only routes
-    router.get('/', requireRole([UserRole.ADMIN]), asyncHandler(userController.userList));
     router.post(
         '/:id/internship',
         requireRole([UserRole.ADMIN]),
